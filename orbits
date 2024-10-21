@@ -1,0 +1,213 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from matplotlib.widgets import Slider
+
+# Constants
+G = 6.67430e-11        # Gravitational constant, m^3 kg^-1 s^-2
+M_sun = 1.9885e30      # Mass of the sun in kg
+AU = 149.6e9           # Astronomical unit in meters
+year_in_seconds = 365.25 * 24 * 3600  # One Earth year in seconds
+Earth_radius_km = 6371  # Earth's radius in km
+
+# Conversion factor
+ms_to_mph = 2.23694    # 1 m/s = 2.23694 mph
+
+# Planet data with planetary radii in km
+planets = [
+    {
+        'name': 'Mercury',
+        'radius': 0.387 * AU,
+        'orbital_period': 0.241 * year_in_seconds,
+        'color': 'gray',
+        'radius_km': 2439.7
+    },
+    {
+        'name': 'Venus',
+        'radius': 0.723 * AU,
+        'orbital_period': 0.615 * year_in_seconds,
+        'color': 'darkgoldenrod',  # Darker color for Venus
+        'radius_km': 6051.8
+    },
+    {
+        'name': 'Earth',
+        'radius': 1.0 * AU,
+        'orbital_period': 1.0 * year_in_seconds,
+        'color': 'blue',
+        'radius_km': 6371
+    },
+    {
+        'name': 'Mars',
+        'radius': 1.524 * AU,
+        'orbital_period': 1.881 * year_in_seconds,
+        'color': 'red',
+        'radius_km': 3389.5
+    },
+    {
+        'name': 'Jupiter',
+        'radius': 5.203 * AU,
+        'orbital_period': 11.862 * year_in_seconds,
+        'color': 'orange',
+        'radius_km': 69911
+    },
+    {
+        'name': 'Saturn',
+        'radius': 9.537 * AU,
+        'orbital_period': 29.457 * year_in_seconds,
+        'color': 'gold',
+        'radius_km': 58232
+    },
+    {
+        'name': 'Uranus',
+        'radius': 19.191 * AU,
+        'orbital_period': 84.016 * year_in_seconds,
+        'color': 'lightblue',
+        'radius_km': 25362
+    },
+    {
+        'name': 'Neptune',
+        'radius': 30.068 * AU,
+        'orbital_period': 164.791 * year_in_seconds,
+        'color': 'darkblue',
+        'radius_km': 24622
+    },
+]
+
+# Calculate orbital velocities, orbital periods in Earth years, and marker sizes
+max_marker_size = 12  # Maximum marker size to cap large planets
+for planet in planets:
+    r = planet['radius']
+    T = planet['orbital_period']
+    v = 2 * np.pi * r / T  # Orbital velocity in m/s
+    planet['velocity'] = v
+    planet['orbital_period_years'] = T / year_in_seconds
+    # Calculate marker size based on planetary radius
+    marker_size = 6 * (planet['radius_km'] / Earth_radius_km) ** (1/3)
+    if marker_size > max_marker_size:
+        marker_size = max_marker_size
+    planet['marker_size'] = marker_size
+    # Convert velocity to mph for printing
+    v_mph = v * ms_to_mph
+    print(f"{planet['name']} orbital velocity: {v_mph:,.2f} mph, Orbital period: {planet['orbital_period_years']:.2f} Earth years")
+
+# Asteroid belt parameters
+num_asteroids = 150  # Reduced number of asteroids
+asteroid_belt_inner = 2.2 * AU  # Inner radius of asteroid belt
+asteroid_belt_outer = 3.2 * AU  # Outer radius of asteroid belt
+asteroid_radii = np.random.uniform(asteroid_belt_inner, asteroid_belt_outer, num_asteroids)
+asteroid_angles = np.random.uniform(0, 2 * np.pi, num_asteroids)
+asteroid_velocities = np.sqrt(G * M_sun / asteroid_radii)  # Circular orbit assumption
+
+# Set up the animation
+plt.style.use('dark_background')  # Use dark background style
+
+fig, ax = plt.subplots(figsize=(10, 10))
+plt.subplots_adjust(top=0.93, bottom=0.2, right=0.95)  # Adjust space for sliders and legend
+
+fig.patch.set_facecolor('black')  # Set figure facecolor to black
+ax.set_aspect('equal')
+ax.set_facecolor('black')  # Set axes facecolor to black
+ax.axis('off')
+
+# Define initial plot limits with zoom factor
+max_radius = max(planet['radius'] for planet in planets)
+zoom_factor = 0.7  # Initial zoom factor (70% of full view)
+ax.set_xlim(-max_radius * zoom_factor * 1.1, max_radius * zoom_factor * 1.1)
+ax.set_ylim(-max_radius * zoom_factor * 1.1, max_radius * zoom_factor * 1.1)
+
+# Plot the sun as a small yellow dot
+sun_size = 5  # Reduced size for better inner planet visibility
+sun, = ax.plot(0, 0, 'o', color='yellow', markersize=sun_size, label='Sun')
+
+# Initialize planet plots
+planet_lines = []
+for planet in planets:
+    # Convert orbital velocity to mph
+    velocity_mph = planet['velocity'] * ms_to_mph
+    line, = ax.plot([], [], 'o', color=planet['color'], markersize=planet['marker_size'],
+                    label=f"{planet['name']} ({velocity_mph:,.0f} mph, {planet['orbital_period_years']:.1f} yr)")
+    planet_lines.append(line)
+
+# Initialize asteroid plots
+asteroid_plots = []
+for i in range(num_asteroids):
+    asteroid_plot, = ax.plot([], [], 'o', color='white', markersize=0.5)
+    asteroid_plots.append(asteroid_plot)
+
+# Add legend at the bottom using horizontal space without the "Time per frame" title
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=4, fontsize='small', frameon=False)
+
+def update(frame):
+    # Time increment in seconds, controlled by the slider
+    dt = days_slider.val * 24 * 3600  # Days per frame from the slider
+    # Update planets
+    for i, planet in enumerate(planets):
+        # Update the angle of each planet
+        if 'angle' not in planet:
+            planet['angle'] = np.random.rand() * 2 * np.pi  # Random initial angle
+        # Angular speed omega = v / r
+        omega = planet['velocity'] / planet['radius']
+        planet['angle'] += omega * dt
+        x = planet['radius'] * np.cos(planet['angle'])
+        y = planet['radius'] * np.sin(planet['angle'])
+        planet_lines[i].set_data([x], [y])  # Pass x and y as sequences
+    # Update asteroids
+    for i in range(num_asteroids):
+        # Update angle
+        omega = asteroid_velocities[i] / asteroid_radii[i]
+        asteroid_angles[i] += omega * dt
+        x = asteroid_radii[i] * np.cos(asteroid_angles[i])
+        y = asteroid_radii[i] * np.sin(asteroid_angles[i])
+        asteroid_plots[i].set_data([x], [y])
+    return planet_lines + asteroid_plots + [days_val_text]
+
+# Create the zoom slider at the very top
+ax_zoom = plt.axes([0.1, 0.93, 0.8, 0.03], facecolor='gray')  # Adjusted width
+zoom_slider = Slider(
+    ax=ax_zoom,
+    label='Zoom',
+    valmin=0.1,
+    valmax=1.0,
+    valinit=zoom_factor,
+    valstep=0.05,
+    color='white'
+)
+
+# Update function for zoom slider
+def update_zoom(val):
+    zoom = zoom_slider.val
+    ax.set_xlim(-max_radius * zoom * 1.1, max_radius * zoom * 1.1)
+    ax.set_ylim(-max_radius * zoom * 1.1, max_radius * zoom * 1.1)
+    fig.canvas.draw_idle()
+
+zoom_slider.on_changed(update_zoom)
+
+# Create the days per frame vertical slider on the right side
+ax_days = plt.axes([0.96, 0.25, 0.02, 0.5], facecolor='gray')  # Positioned as far right as possible
+days_slider = Slider(
+    ax=ax_days,
+    label='Time\nper\nframe\ndays',
+    valmin=0.1,
+    valmax=10.0,
+    valinit=2.0,
+    valstep=0.1,
+    orientation='vertical',
+    color='white'
+)
+
+# Add a text box to display the current value of the days_slider
+# Position the text to the left of the slider
+days_val_text = fig.text(0.955, 0.75, f'{days_slider.val:.1f} days', va='center', ha='right', color='white', fontsize='small')
+
+# Update function for days slider to update the text
+def update_days(val):
+    days_val_text.set_text(f'{val:.1f} days')
+    fig.canvas.draw_idle()
+
+days_slider.on_changed(update_days)
+
+# Initialize the days_val_text with the initial slider value
+update_days(days_slider.val)
+
+anim = FuncAnimation(fig, update, frames=1000, interval=20, blit=False)
+plt.show()
