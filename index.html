@@ -3,55 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Solar System 3D</title>
+<title>Sol System — The Expanse</title>
 <style>
-  :root { color-scheme: dark; }
+  :root {
+    color-scheme: dark;
+    --teal: #45b8c8;
+    --teal-dim: rgba(69,184,200,0.35);
+    --mcr: #e06a2b;
+    --un: #3d7dd6;
+    --opa: #57c7b8;
+    --ink: #cfe6ea;
+    --panel: rgba(6,16,24,0.78);
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
-    background: #000; overflow: hidden; overscroll-behavior: none;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #04070c; overflow: hidden; overscroll-behavior: none;
+    font-family: "Bahnschrift", "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
     touch-action: none; user-select: none;
   }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
   #app { position: fixed; inset: 0; }
   canvas { display: block; touch-action: none; }
 
   #loading {
-    position: fixed; inset: 0; background: #000; color: #cfd8ff;
+    position: fixed; inset: 0; background: #04070c; color: var(--ink);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     z-index: 50; gap: 14px; transition: opacity .6s ease;
   }
   #loading .spinner {
     width: 42px; height: 42px; border-radius: 50%;
-    border: 3px solid rgba(140,160,255,0.25); border-top-color: #8cf;
+    border: 3px solid var(--teal-dim); border-top-color: var(--teal);
     animation: spin 0.9s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #loading span { font-size: 13px; letter-spacing: .08em; opacity: .7; text-transform: uppercase; }
+  #loading span { font-size: 12px; letter-spacing: .18em; opacity: .7; text-transform: uppercase; }
 
-  .hud {
-    position: fixed; z-index: 10; color: #e9edff;
-    font-size: 13px; pointer-events: none;
+  .cut {
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
   }
-  #title {
-    top: max(10px, env(safe-area-inset-top)); left: 12px;
-    pointer-events: none;
-  }
-  #title b { font-size: 15px; letter-spacing: .02em; }
-  #title div { opacity: .55; font-size: 11px; margin-top: 2px; }
-
-  #hint {
-    top: max(10px, env(safe-area-inset-top)); right: 12px; text-align: right;
-    max-width: 46vw; opacity: .55; font-size: 11px; line-height: 1.4;
-    transition: opacity .8s ease;
-  }
-
   .glass {
-    background: rgba(18,20,32,0.62);
+    background: var(--panel);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--teal-dim);
   }
+
+  .hud { position: fixed; z-index: 10; color: var(--ink); font-size: 13px; pointer-events: none; }
+  #title { top: max(10px, env(safe-area-inset-top)); left: 12px; padding: 8px 14px; }
+  #title b { font-size: 15px; letter-spacing: .22em; color: var(--teal); }
+  #title div { opacity: .6; font-size: 10px; margin-top: 2px; letter-spacing: .14em; text-transform: uppercase; }
+
+  #hint {
+    top: calc(max(10px, env(safe-area-inset-top)) + 64px); right: 12px; text-align: right;
+    max-width: 46vw; opacity: .6; font-size: 10px; line-height: 1.5;
+    transition: opacity .8s ease; padding: 8px 12px; letter-spacing: .08em; text-transform: uppercase;
+  }
+
+  #shipHUD {
+    display: none; position: fixed; z-index: 11;
+    top: max(10px, env(safe-area-inset-top)); right: 12px;
+    padding: 10px 14px; color: var(--ink); text-align: right;
+    font-size: 12px; letter-spacing: .08em; pointer-events: none;
+  }
+  #shipHUD .row { display: flex; gap: 10px; justify-content: flex-end; }
+  #shipHUD .k { opacity: .5; text-transform: uppercase; font-size: 10px; }
+  #shipHUD .v { color: var(--teal); min-width: 92px; }
+  #shipHUD .roci { color: var(--mcr); font-size: 10px; letter-spacing: .22em; margin-bottom: 4px; }
 
   #controls {
     position: fixed; left: 0; right: 0;
@@ -62,67 +80,92 @@
   #controls > * { pointer-events: auto; }
 
   #planetBar {
-    display: flex; gap: 6px; overflow-x: auto; max-width: 96vw;
-    padding: 6px 8px; border-radius: 16px; -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    display: flex; gap: 4px; overflow-x: auto; max-width: 96vw;
+    padding: 6px 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none;
   }
   #planetBar::-webkit-scrollbar { display: none; }
   .pbtn {
     flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
-    gap: 3px; width: 52px; padding: 4px 0 2px; border-radius: 10px; cursor: pointer;
-    color: #dfe4ff; font-size: 9px; letter-spacing: .02em; border: none; background: transparent;
+    gap: 4px; width: 54px; padding: 5px 0 3px; cursor: pointer;
+    color: var(--ink); font-size: 9px; letter-spacing: .06em; text-transform: uppercase;
+    border: 1px solid transparent; background: transparent;
   }
-  .pbtn.active { background: rgba(140,170,255,0.18); }
-  .pbtn .dot { width: 20px; height: 20px; border-radius: 50%; box-shadow: 0 0 8px 1px currentColor inset, 0 0 6px 0 currentColor; }
+  .pbtn.active { border-color: var(--teal-dim); background: rgba(69,184,200,0.1); }
+  .pbtn .dot { width: 18px; height: 18px; border-radius: 50%; box-shadow: 0 0 8px 1px currentColor inset, 0 0 6px 0 currentColor; }
+  .pbtn .dot.diamond { border-radius: 2px; transform: rotate(45deg) scale(0.82); }
 
-  #toolbar {
-    display: flex; gap: 8px; align-items: center; padding: 8px 10px;
-    border-radius: 16px;
-  }
+  #toolbar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; }
   #toolbar button {
-    border: none; background: rgba(255,255,255,0.08); color: #eef;
-    width: 38px; height: 38px; border-radius: 10px; font-size: 16px;
+    border: 1px solid var(--teal-dim); background: rgba(69,184,200,0.07); color: var(--ink);
+    width: 38px; height: 38px; font-size: 16px;
     display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
-  #toolbar button.on { background: linear-gradient(135deg,#5b7fff,#8b5bff); }
-  #speedWrap { display: flex; align-items: center; gap: 6px; color: #cfe; font-size: 11px; padding: 0 4px; }
-  #speed { width: 90px; accent-color: #8b9dff; }
+  #toolbar button.on { background: var(--teal); color: #04222a; border-color: var(--teal); }
+  #speedWrap { display: flex; align-items: center; gap: 6px; color: var(--ink); font-size: 11px; padding: 0 4px; }
+  #speed { width: 84px; accent-color: var(--teal); }
 
   #infoPanel {
     position: fixed; left: 0; right: 0; bottom: calc(var(--controls-h, 112px) + 6px); z-index: 15;
-    border-radius: 18px; padding: 16px 18px;
+    padding: 14px 18px;
     transform: translateY(70vh); transition: transform .35s cubic-bezier(.2,.9,.25,1);
-    color: #eef1ff; max-height: 34vh; overflow-y: auto;
+    color: var(--ink); max-height: 34vh; overflow-y: auto;
     margin: 0 8px;
   }
   #infoPanel.open { transform: translateY(0); }
   #infoPanel .close {
-    position: absolute; top: 10px; right: 14px; background: none; border: none;
-    color: #aab; font-size: 20px; cursor: pointer; padding: 4px 8px;
+    position: absolute; top: 8px; right: 12px; background: none; border: none;
+    color: var(--ink); opacity: .6; font-size: 18px; cursor: pointer; padding: 4px 8px;
   }
-  #infoPanel h2 { margin: 0 0 4px; font-size: 20px; }
-  #infoPanel .tag { font-size: 11px; opacity: .55; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .08em;}
-  #infoPanel .fact { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
-  #infoPanel .fact span:first-child { opacity: .55; }
-  #infoPanel p.blurb { font-size: 12.5px; opacity: .8; line-height: 1.5; margin: 10px 0 0; }
+  #infoPanel h2 { margin: 0 0 6px; font-size: 20px; letter-spacing: .1em; text-transform: uppercase; }
+  .chip {
+    display: inline-block; font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+    padding: 3px 8px; margin-bottom: 8px; border: 1px solid;
+  }
+  .chip.UN  { color: var(--un); border-color: var(--un); }
+  .chip.MCR { color: var(--mcr); border-color: var(--mcr); }
+  .chip.OPA { color: var(--opa); border-color: var(--opa); }
+  .chip.SOL { color: #ffd35c; border-color: #ffd35c; }
+  .chip.UNK { color: #b48ce8; border-color: #b48ce8; }
+  #infoPanel .fact { display: flex; justify-content: space-between; gap: 14px; font-size: 12.5px; padding: 5px 0; border-bottom: 1px solid rgba(69,184,200,0.12); }
+  #infoPanel .fact span:first-child { opacity: .5; text-transform: uppercase; font-size: 10.5px; letter-spacing: .1em; padding-top: 2px; }
+  #infoPanel .fact span:last-child { text-align: right; }
+  #infoPanel p.blurb { font-size: 12.5px; opacity: .8; line-height: 1.55; margin: 10px 0 0; }
+
+  #thrustPad {
+    display: none; position: fixed; right: 12px; bottom: calc(var(--controls-h, 112px) + 14px);
+    z-index: 16; flex-direction: column; gap: 8px;
+  }
+  #thrustPad button {
+    width: 92px; height: 52px; border: 1px solid var(--mcr); color: var(--mcr);
+    background: rgba(224,106,43,0.08); font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; cursor: pointer;
+  }
+  #thrustPad button:active { background: var(--mcr); color: #170a03; }
+  #thrustPad #btnBrake { border-color: var(--teal); color: var(--teal); background: rgba(69,184,200,0.08); }
+  #thrustPad #btnBrake:active { background: var(--teal); color: #04222a; }
+
+  #steerHint {
+    display: none; position: fixed; left: 12px; bottom: calc(var(--controls-h, 112px) + 18px);
+    z-index: 11; color: var(--ink); opacity: .45; font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; pointer-events: none; line-height: 1.6;
+  }
 
   #gyroModal {
     position: fixed; inset: 0; z-index: 40; display: none;
     align-items: center; justify-content: center; background: rgba(0,0,0,0.55);
   }
-  #gyroModal .box {
-    max-width: 320px; padding: 22px; border-radius: 16px; text-align: center; color: #eef;
-  }
+  #gyroModal .box { max-width: 320px; padding: 22px; text-align: center; color: var(--ink); }
   #gyroModal button {
-    margin-top: 14px; background: linear-gradient(135deg,#5b7fff,#8b5bff); border: none;
-    color: #fff; padding: 10px 20px; border-radius: 10px; font-size: 14px;
+    margin-top: 14px; background: var(--teal); border: none;
+    color: #04222a; padding: 10px 20px; font-size: 13px; letter-spacing: .08em; cursor: pointer;
   }
+  #gyroModal button.alt { background: rgba(255,255,255,0.1); color: var(--ink); }
 
   .label {
-    position: absolute; top: 0; left: 0; color: #dfe6ff; font-size: 11px;
+    position: absolute; top: 0; left: 0; color: var(--ink); font-size: 10px;
     text-shadow: 0 0 4px #000, 0 0 8px #000; pointer-events: none;
     transform: translate(-50%, -140%); white-space: nowrap; z-index: 5;
-    letter-spacing: .03em;
+    letter-spacing: .14em; text-transform: uppercase;
   }
 </style>
 </head>
@@ -131,31 +174,47 @@
 
 <div id="loading">
   <div class="spinner"></div>
-  <span>Building the solar system…</span>
+  <span>Initializing nav overlay…</span>
 </div>
 
-<div class="hud glass" id="title" style="padding:8px 12px; border-radius:12px;">
-  <b>🪐 Solar System</b>
-  <div>Drag / swipe to look around</div>
+<div class="hud glass cut" id="title">
+  <b>SOL SYSTEM</b>
+  <div>The Expanse · Tactical Nav Overlay</div>
 </div>
 
-<div class="hud glass" id="hint" style="padding:8px 12px; border-radius:12px;">
-  Pinch to zoom · Tap a planet to explore
+<div class="hud glass cut" id="hint">
+  Drag to look · Pinch to zoom<br>Tap a body to inspect · 🚀 fly the Roci
 </div>
+
+<div class="hud glass cut" id="shipHUD">
+  <div class="roci">▮ ROCINANTE — MCRN CORVETTE (LEGITIMATE SALVAGE)</div>
+  <div class="row"><span class="k">Vel</span><span class="v mono" id="hudVel">0 km/s</span></div>
+  <div class="row"><span class="k">Drive</span><span class="v mono" id="hudThr">IDLE</span></div>
+  <div class="row"><span class="k">Nearest</span><span class="v mono" id="hudNear">—</span></div>
+</div>
+
+<div id="steerHint">Drag: steer<br>↑/W burn · ↓/S retro<br>Shift: epstein · Space: flip&amp;burn<br>Wheel/pinch: camera</div>
 
 <div id="labelLayer"></div>
 
-<div id="infoPanel" class="glass">
+<div id="infoPanel" class="glass cut">
   <button class="close" id="infoClose">✕</button>
-  <div class="tag" id="infoTag">Planet</div>
+  <div><span class="chip" id="infoTag">UN</span></div>
   <h2 id="infoName">Earth</h2>
   <div id="infoFacts"></div>
   <p class="blurb" id="infoBlurb"></p>
 </div>
 
+<div id="thrustPad">
+  <button id="btnBurn">▲ Burn</button>
+  <button id="btnRetro">▼ Retro</button>
+  <button id="btnBrake">■ Flip&amp;Burn</button>
+</div>
+
 <div id="controls">
-  <div id="planetBar" class="glass"></div>
-  <div id="toolbar" class="glass">
+  <div id="planetBar" class="glass cut"></div>
+  <div id="toolbar" class="glass cut">
+    <button id="btnShip" title="Fly the Rocinante">🚀</button>
     <button id="btnPlay" title="Play/Pause">⏸</button>
     <div id="speedWrap">
       <span>🐢</span><input id="speed" type="range" min="0" max="60" value="8" step="1"><span>🐇</span>
@@ -167,12 +226,12 @@
 </div>
 
 <div id="gyroModal">
-  <div class="box glass">
+  <div class="box glass cut">
     <div style="font-size:28px;">🧭</div>
-    <h3 style="margin:8px 0 4px;">Motion Look-Around</h3>
-    <p style="font-size:13px; opacity:.75; line-height:1.5;">Move your phone to look around the solar system. Your browser needs permission to use motion sensors.</p>
+    <h3 style="margin:8px 0 4px; letter-spacing:.1em;">MOTION LOOK-AROUND</h3>
+    <p style="font-size:13px; opacity:.75; line-height:1.5;">Move your phone to look around the system. Your browser needs permission to use motion sensors.</p>
     <button id="gyroAllow">Enable Motion</button>
-    <div style="margin-top:8px;"><button id="gyroCancel" style="background:rgba(255,255,255,0.1);">Not now</button></div>
+    <div style="margin-top:8px;"><button id="gyroCancel" class="alt">Not now</button></div>
   </div>
 </div>
 
@@ -201,7 +260,6 @@ function makeRockyTexture(baseHex, darkHex, lightHex, craterCount){
   const c = newCanvas(512,256), ctx = c.getContext('2d');
   const base = hexToRgb(baseHex);
   ctx.fillStyle = rgbStr(base); ctx.fillRect(0,0,512,256);
-  // mottling
   for(let i=0;i<2200;i++){
     const t = Math.random();
     const col = lerpColor(hexToRgb(darkHex), hexToRgb(lightHex), t);
@@ -209,7 +267,6 @@ function makeRockyTexture(baseHex, darkHex, lightHex, craterCount){
     const r = rnd(2,10);
     ctx.beginPath(); ctx.arc(rnd(0,512), rnd(0,256), r, 0, Math.PI*2); ctx.fill();
   }
-  // craters
   for(let i=0;i<craterCount;i++){
     const x=rnd(0,512), y=rnd(0,256), r=rnd(2,16);
     const g = ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.1, x,y,r);
@@ -235,7 +292,6 @@ function makeGasTexture(bandColors, spot){
     ctx.fillStyle = grad;
     ctx.fillRect(0,y0,512,h+1);
   }
-  // turbulent swirl overlay
   ctx.globalAlpha = 0.18;
   for(let i=0;i<900;i++){
     const y = rnd(0,256);
@@ -264,7 +320,6 @@ function makeGasTexture(bandColors, spot){
 function makeEarthTexture(){
   const c = newCanvas(512,256), ctx = c.getContext('2d');
   ctx.fillStyle = '#144a86'; ctx.fillRect(0,0,512,256);
-  // shallow water tint near coasts done via continents blur
   const landColors = ['#3f7d3a','#5c8f42','#7a9a4a','#8a7440'];
   for(let cont=0; cont<9; cont++){
     const cx = rnd(0,512), cy = rnd(30,226);
@@ -280,7 +335,6 @@ function makeEarthTexture(){
     }
     ctx.closePath(); ctx.fill();
   }
-  // ice caps
   ctx.fillStyle = 'rgba(255,255,255,0.9)';
   ctx.fillRect(0,0,512,14);
   ctx.fillRect(0,242,512,14);
@@ -373,8 +427,9 @@ app.appendChild(renderer.domElement);
 const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
 orbitControls.enableDamping = true;
 orbitControls.dampingFactor = 0.08;
-orbitControls.minDistance = 4;
-orbitControls.maxDistance = 900;
+orbitControls.minDistance = 3;
+orbitControls.maxDistance = 1200;
+orbitControls.zoomSpeed = 2.4;     // fast zoom, as requested
 orbitControls.target.set(0,0,0);
 
 let deviceControls = null;
@@ -406,7 +461,6 @@ scene.add(sunLight);
   const geo = new THREE.BufferGeometry();
   const N = 6000;
   const positions = new Float32Array(N*3);
-  const sizes = new Float32Array(N);
   for(let i=0;i<N;i++){
     const r = rnd(600, 3200);
     const theta = Math.acos(rnd(-1,1));
@@ -414,7 +468,6 @@ scene.add(sunLight);
     positions[i*3]   = r*Math.sin(theta)*Math.cos(phi);
     positions[i*3+1] = r*Math.cos(theta);
     positions[i*3+2] = r*Math.sin(theta)*Math.sin(phi);
-    sizes[i] = rnd(0.6, 2.4);
   }
   geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
   const mat = new THREE.PointsMaterial({ map:starTex, size:2.2, transparent:true, depthWrite:false, opacity:0.9, sizeAttenuation:true });
@@ -426,10 +479,9 @@ scene.add(sunLight);
 --------------------------------------------------------------------- */
 const sunGroup = new THREE.Group();
 scene.add(sunGroup);
-const sunTex = makeSunTexture();
 const sunMesh = new THREE.Mesh(
   new THREE.SphereGeometry(10, 48, 32),
-  new THREE.MeshBasicMaterial({ map: sunTex })
+  new THREE.MeshBasicMaterial({ map: makeSunTexture() })
 );
 sunGroup.add(sunMesh);
 const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -440,46 +492,65 @@ sunGlow.scale.set(60,60,1);
 sunGroup.add(sunGlow);
 
 /* ---------------------------------------------------------------------
-   PLANET DATA
+   FACTIONS
 --------------------------------------------------------------------- */
-const PLANETS = [
-  { key:'mercury', name:'Mercury', color:0x9c9c9c, radius:1.3, distance:26, orbitalPeriod:88, rotationPeriod:58.6, tilt:0.03, type:'rocky',
-    texArgs:[0x9c9c9c,0x5c5c5c,0xd6d6d6,140], facts:{ 'Diameter':'4,879 km', 'Distance from Sun':'57.9 million km', 'Orbital period':'88 days', 'Day length':'59 Earth days', 'Moons':'0' },
-    blurb:'The smallest and fastest planet, Mercury is a scorched, cratered world with almost no atmosphere.' },
-  { key:'venus', name:'Venus', color:0xe8c98a, radius:2.1, distance:38, orbitalPeriod:224.7, rotationPeriod:-243, tilt:177.4, type:'gas',
-    texArgs:[[ '#e9d3a0','#d8b978','#f2e2b8','#c9a866' ], null], facts:{ 'Diameter':'12,104 km', 'Distance from Sun':'108.2 million km', 'Orbital period':'224.7 days', 'Day length':'243 Earth days (retrograde)', 'Moons':'0' },
-    blurb:'Venus spins backwards and is smothered in thick, toxic clouds that trap heat — hotter than Mercury.' },
-  { key:'earth', name:'Earth', color:0x2f6fb0, radius:2.2, distance:52, orbitalPeriod:365.25, rotationPeriod:1, tilt:23.4, type:'earth',
-    facts:{ 'Diameter':'12,742 km', 'Distance from Sun':'149.6 million km', 'Orbital period':'365.25 days', 'Day length':'24 hours', 'Moons':'1 (the Moon)' },
-    blurb:'Our home — the only known world with liquid water oceans and life.',
-    moons:[ { name:'Moon', radius:0.6, distance:5.5, orbitalPeriod:27.3, color:0xaaaaaa } ] },
-  { key:'mars', name:'Mars', color:0xb3542f, radius:1.6, distance:68, orbitalPeriod:687, rotationPeriod:1.03, tilt:25.2, type:'rocky',
-    texArgs:[0xb3542f,0x7a3010,0xd98a55,120], facts:{ 'Diameter':'6,779 km', 'Distance from Sun':'227.9 million km', 'Orbital period':'687 days', 'Day length':'24.6 hours', 'Moons':'2 (Phobos, Deimos)' },
-    blurb:'The Red Planet gets its color from iron oxide (rust) dust covering its surface.' },
-  { key:'jupiter', name:'Jupiter', color:0xd8ca9d, radius:8.4, distance:118, orbitalPeriod:4331, rotationPeriod:0.41, tilt:3.1, type:'gas',
-    texArgs:[[ '#e3d2ab','#c9a877','#efe2c0','#b98f61','#d9c193' ], '#c2603a'], facts:{ 'Diameter':'139,820 km', 'Distance from Sun':'778.5 million km', 'Orbital period':'11.9 years', 'Day length':'9.9 hours', 'Moons':'95 known' },
-    blurb:'The largest planet — a gas giant with a Great Red Spot storm bigger than Earth.',
-    moons:[ { name:'Io', radius:0.5, distance:11, orbitalPeriod:1.8, color:0xd7c85a }, { name:'Europa', radius:0.45, distance:13, orbitalPeriod:3.6, color:0xcac2a8 }, { name:'Ganymede', radius:0.7, distance:16, orbitalPeriod:7.2, color:0x998f7d }, { name:'Callisto', radius:0.65, distance:19, orbitalPeriod:16.7, color:0x7a7263 } ] },
-  { key:'saturn', name:'Saturn', color:0xead6a8, radius:7.2, distance:170, orbitalPeriod:10747, rotationPeriod:0.45, tilt:26.7, type:'gas', rings:{ inner:9.5, outer:17, bands:24 },
-    texArgs:[[ '#f1e3bd','#e0cd98','#f6ecd0','#d3bb84' ], null], facts:{ 'Diameter':'116,460 km', 'Distance from Sun':'1.43 billion km', 'Orbital period':'29.5 years', 'Day length':'10.7 hours', 'Moons':'146 known' },
-    blurb:'Famous for its dazzling ring system made of countless ice and rock particles.' },
-  { key:'uranus', name:'Uranus', color:0xaee3e6, radius:4.8, distance:215, orbitalPeriod:30589, rotationPeriod:-0.72, tilt:97.8, type:'gas', rings:{ inner:6.5, outer:9, bands:10 },
-    texArgs:[[ '#b7e6e8','#9fd6d9','#cdf0f1' ], null], facts:{ 'Diameter':'50,724 km', 'Distance from Sun':'2.87 billion km', 'Orbital period':'84 years', 'Day length':'17.2 hours (retrograde)', 'Moons':'28 known' },
-    blurb:'Uranus rotates almost on its side, likely tipped over by an ancient collision.' },
-  { key:'neptune', name:'Neptune', color:0x5b7bdb, radius:4.6, distance:255, orbitalPeriod:59800, rotationPeriod:0.67, tilt:28.3, type:'gas',
-    texArgs:[[ '#4d6fd6','#3c58b8','#6c8ce6' ], '#dfe6ff'], facts:{ 'Diameter':'49,244 km', 'Distance from Sun':'4.5 billion km', 'Orbital period':'165 years', 'Day length':'16.1 hours', 'Moons':'16 known' },
-    blurb:'The windiest planet, with storms racing at over 2,000 km/h in a deep blue atmosphere.' },
-];
-
-const SUN_FACTS = { 'Diameter':'1,391,000 km', 'Mass share':'99.86% of the solar system', 'Surface temp':'~5,500°C', 'Core temp':'~15,000,000°C', 'Age':'~4.6 billion years' };
-const SUN_BLURB = 'A massive ball of hydrogen and helium plasma whose gravity holds the entire solar system together.';
+const FACTION_COLORS = { UN: 0x3d7dd6, MCR: 0xe06a2b, OPA: 0x57c7b8, SOL: 0xffd35c, UNK: 0xb48ce8 };
+const FACTION_NAMES = {
+  UN: 'UN — United Nations of Earth & Luna',
+  MCR: 'MCR — Martian Congressional Republic',
+  OPA: 'OPA — Outer Planets Alliance',
+  SOL: 'Sol', UNK: 'Unknown Origin'
+};
 
 /* ---------------------------------------------------------------------
-   BUILD PLANETS
+   PLANET DATA (with Expanse dossiers)
 --------------------------------------------------------------------- */
-const planetHolders = [];  // Object3D, world position tracks the planet
-const planetMeshes = [];
-const orbitPivots = [];
+const PLANETS = [
+  { key:'mercury', name:'Mercury', faction:'SOL', color:0x9c9c9c, radius:1.3, distance:26, orbitalPeriod:88, rotationPeriod:58.6, tilt:0.03, type:'rocky',
+    texArgs:[0x9c9c9c,0x5c5c5c,0xd6d6d6,140],
+    facts:{ 'Diameter':'4,879 km', 'Orbital period':'88 days', 'Allegiance':'Unclaimed — solar collector arrays only', 'Population':'0 (automated)' },
+    blurb:'Too close to the Sun for settlement. Automated UN solar arrays skim its orbit, feeding power-hungry Earth.' },
+  { key:'venus', name:'Venus', faction:'UNK', color:0xe8c98a, radius:2.1, distance:38, orbitalPeriod:224.7, rotationPeriod:-243, tilt:177.4, type:'gas',
+    texArgs:[[ '#e9d3a0','#d8b978','#f2e2b8','#c9a866' ], null],
+    facts:{ 'Diameter':'12,104 km', 'Orbital period':'224.7 days', 'Status':'QUARANTINE — Eros impact site', 'Hazard':'Protomolecule activity detected' },
+    blurb:'After Eros Station fell out of the sky here, every navy in the system watches Venus and prays nothing crawls back out of the clouds.' },
+  { key:'earth', name:'Earth', faction:'UN', color:0x2f6fb0, radius:2.2, distance:52, orbitalPeriod:365.25, rotationPeriod:1, tilt:23.4, type:'earth',
+    facts:{ 'Diameter':'12,742 km', 'Allegiance':'United Nations', 'Population':'~30 billion — over half on Basic Assistance', 'Military':'UNN — the largest fleet in the system', 'Edge':'Supreme in tech & industry, straining under its own weight' },
+    blurb:'The cradle of humanity: unmatched shipyards, unmatched science — and thirty billion mouths it can barely feed. Supreme, and struggling.',
+    moons:[ { name:'Luna', radius:0.6, distance:5.5, orbitalPeriod:27.3, color:0xaaaaaa } ] },
+  { key:'mars', name:'Mars', faction:'MCR', color:0xb3542f, radius:1.6, distance:68, orbitalPeriod:687, rotationPeriod:1.03, tilt:25.2, type:'rocky',
+    texArgs:[0xb3542f,0x7a3010,0xd98a55,120],
+    facts:{ 'Diameter':'6,779 km', 'Allegiance':'Martian Congressional Republic', 'Population':'~4 billion, under domes', 'Military':'MCRN — fewer hulls, decisively superior tech', 'Project':'The Terraforming — a 100-year dream' },
+    blurb:'A military powerhouse forged by discipline and the terraforming dream. Every Martian serves; every ship out-guns its tonnage.' },
+  { key:'jupiter', name:'Jupiter', faction:'OPA', color:0xd8ca9d, radius:8.4, distance:118, orbitalPeriod:4331, rotationPeriod:0.41, tilt:3.1, type:'gas',
+    texArgs:[[ '#e3d2ab','#c9a877','#efe2c0','#b98f61','#d9c193' ], '#c2603a'],
+    facts:{ 'Diameter':'139,820 km', 'Moons':'95 known', 'Key holding':'Ganymede — breadbasket of the outer planets', 'Contested by':'UNN & MCRN patrol fleets' },
+    blurb:'The Jovian system feeds the Belt. Ganymede’s mirrored farms are too valuable for any flag to leave unguarded.',
+    moons:[ { name:'Io', radius:0.5, distance:11, orbitalPeriod:1.8, color:0xd7c85a }, { name:'Europa', radius:0.45, distance:13, orbitalPeriod:3.6, color:0xcac2a8 }, { name:'Ganymede', radius:0.7, distance:16, orbitalPeriod:7.2, color:0x998f7d }, { name:'Callisto', radius:0.65, distance:19, orbitalPeriod:16.7, color:0x7a7263 } ] },
+  { key:'saturn', name:'Saturn', faction:'OPA', color:0xead6a8, radius:7.2, distance:170, orbitalPeriod:10747, rotationPeriod:0.45, tilt:26.7, type:'gas', rings:{ inner:9.5, outer:17, bands:24 },
+    texArgs:[[ '#f1e3bd','#e0cd98','#f6ecd0','#d3bb84' ], null],
+    facts:{ 'Diameter':'116,460 km', 'Moons':'146 known', 'Key holding':'Titan — methane harvesters', 'Traffic':'Ice haulers bound for the Belt' },
+    blurb:'Ring ice is Belt water. Haulers like the old Canterbury ran these lanes until the war changed everything.' },
+  { key:'uranus', name:'Uranus', faction:'OPA', color:0xaee3e6, radius:4.8, distance:215, orbitalPeriod:30589, rotationPeriod:-0.72, tilt:97.8, type:'gas', rings:{ inner:6.5, outer:9, bands:10 },
+    texArgs:[[ '#b7e6e8','#9fd6d9','#cdf0f1' ], null],
+    facts:{ 'Diameter':'50,724 km', 'Tilt':'97.8° — rolls on its side', 'Presence':'Sparse OPA prospectors', 'Signal lag to Earth':'~2.7 hours' },
+    blurb:'Out here the inner planets are just bright stars, and nobody answers a distress call fast.' },
+  { key:'neptune', name:'Neptune', faction:'OPA', color:0x5b7bdb, radius:4.6, distance:255, orbitalPeriod:59800, rotationPeriod:0.67, tilt:28.3, type:'gas',
+    texArgs:[[ '#4d6fd6','#3c58b8','#6c8ce6' ], '#dfe6ff'],
+    facts:{ 'Diameter':'49,244 km', 'Orbital period':'165 years', 'Presence':'Science outposts, smuggler caches', 'Beyond':'The Ring' },
+    blurb:'The last planet before the deep dark — and before the thing that appeared beyond it.' },
+];
+
+const SUN_BODY = {
+  key:'sun', name:'Sol', faction:'SOL',
+  facts:{ 'Diameter':'1,391,000 km', 'Mass share':'99.86% of the system', 'Surface temp':'~5,500°C', 'Note':'Every flag in the system still orbits this one' },
+  blurb:'A massive ball of hydrogen and helium plasma whose gravity holds the entire system — and all three factions — together.'
+};
+
+/* ---------------------------------------------------------------------
+   BUILD PLANETS  (tilt group decoupled from spin so rings don't tumble)
+--------------------------------------------------------------------- */
+const selectableRoots = [];
 
 function buildPlanet(data){
   const pivot = new THREE.Object3D();
@@ -490,15 +561,18 @@ function buildPlanet(data){
   holder.position.set(data.distance, 0, 0);
   pivot.add(holder);
 
+  const tiltGroup = new THREE.Object3D();
+  tiltGroup.rotation.z = THREE.MathUtils.degToRad(data.tilt);
+  holder.add(tiltGroup);
+
   let map;
   if(data.type === 'rocky') map = makeRockyTexture(...data.texArgs);
   else if(data.type === 'gas') map = makeGasTexture(...data.texArgs);
   else if(data.type === 'earth') map = makeEarthTexture();
 
-  const mat = new THREE.MeshStandardMaterial({ map, roughness:0.9, metalness:0.02, color: 0xffffff });
+  const mat = new THREE.MeshStandardMaterial({ map, roughness:0.9, metalness:0.02 });
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.radius, 40, 28), mat);
-  mesh.rotation.z = THREE.MathUtils.degToRad(data.tilt);
-  holder.add(mesh);
+  tiltGroup.add(mesh);
 
   if(data.type === 'earth'){
     const cloudMat = new THREE.MeshStandardMaterial({ map: makeCloudsTexture(70), transparent:true, opacity:0.55, roughness:1, depthWrite:false });
@@ -507,13 +581,15 @@ function buildPlanet(data){
   }
 
   if(data.rings){
+    // Rings live on the tilt group, NOT the spinning mesh — a ring plane
+    // parented to a tilted spinning body precesses visibly (the old bug).
     const { inner, outer, bands } = data.rings;
     const ringGeo = new THREE.RingGeometry(inner, outer, 96, 4);
     fixRingUVs(ringGeo, inner, outer);
     const ringMat = new THREE.MeshBasicMaterial({ map: makeRingTexture(bands), side: THREE.DoubleSide, transparent:true, opacity:0.9 });
     const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = Math.PI/2;
-    mesh.add(ring);
+    tiltGroup.add(ring);
   }
 
   if(data.moons){
@@ -531,24 +607,20 @@ function buildPlanet(data){
     });
   }
 
-  // orbit path line
   const curvePts = [];
   for(let i=0;i<=128;i++){
     const a = (i/128)*Math.PI*2;
     curvePts.push(new THREE.Vector3(Math.cos(a)*data.distance, 0, Math.sin(a)*data.distance));
   }
   const orbitGeo = new THREE.BufferGeometry().setFromPoints(curvePts);
-  const orbitMat = new THREE.LineBasicMaterial({ color: 0x6f7fb8, transparent:true, opacity:0.25 });
-  scene.add(new THREE.LineLoop(orbitGeo, orbitMat));
+  scene.add(new THREE.LineLoop(orbitGeo, new THREE.LineBasicMaterial({ color: 0x3d6f7a, transparent:true, opacity:0.3 })));
 
   data._pivot = pivot;
   data._holder = holder;
   data._mesh = mesh;
-  mesh.userData.planetKey = data.key;
-
-  planetHolders.push(holder);
-  planetMeshes.push(mesh);
-  orbitPivots.push(pivot);
+  data.focusRadius = data.rings ? data.rings.outer * 0.9 : data.radius;
+  mesh.userData.body = data;
+  selectableRoots.push(mesh);
 }
 
 PLANETS.forEach(buildPlanet);
@@ -565,8 +637,7 @@ PLANETS.forEach(buildPlanet);
   for(let i=0;i<COUNT;i++){
     const r = rnd(85, 104);
     const a = rnd(0, Math.PI*2);
-    const y = rnd(-1.6, 1.6);
-    dummy.position.set(Math.cos(a)*r, y, Math.sin(a)*r);
+    dummy.position.set(Math.cos(a)*r, rnd(-1.6,1.6), Math.sin(a)*r);
     dummy.rotation.set(rnd(0,7), rnd(0,7), rnd(0,7));
     const s = rnd(0.4, 1.6);
     dummy.scale.set(s,s,s);
@@ -577,70 +648,326 @@ PLANETS.forEach(buildPlanet);
 })();
 
 /* ---------------------------------------------------------------------
-   LABELS (screen-space projected)
+   STATIONS — the big Belt ports plus military yards at Mars & Earth
+--------------------------------------------------------------------- */
+const STATIONS = [
+  { key:'ceres', name:'Ceres Station', faction:'OPA', model:'rock', scale:3.0, pill:'Ceres',
+    orbit:{ dist:95, period:1682 },
+    facts:{ 'Allegiance':'OPA (seized from Earth-Mars control)', 'Population':'~6 million + 1 million transient', 'Gravity':'0.3 g — spun up long ago', 'Role':'Largest port in the Belt', 'Security':'Star Helix, then the OPA' },
+    blurb:'The crossroads of the Belt. Water and air are shipped in; everything else is negotiable. Inners call it a rock — Belters call it home.' },
+  { key:'eros', name:'Eros Station', faction:'UNK', model:'rock', scale:2.0, pill:'Eros',
+    orbit:{ dist:88, period:1450 },
+    facts:{ 'Status':'DESTROYED — impacted Venus', 'Former population':'~1.5 million', 'Incident':'Protomolecule outbreak, Protogen experiment', 'Memorial':'Shown at former orbital station' },
+    blurb:'Where it started: a whole station fed to the protomolecule. What was left of Eros steered itself into Venus. This marker holds its old orbit.' },
+  { key:'tycho', name:'Tycho Station', faction:'OPA', model:'ring', scale:3.4, pill:'Tycho',
+    orbit:{ dist:101, period:1820 },
+    facts:{ 'Operator':'Tycho Manufacturing — Fred Johnson', 'Population':'~15,000 engineers & crew', 'Role':'Greatest mobile shipyard ever built', 'Claim to fame':'Built the Nauvoo / Behemoth', 'Home port of':'The Rocinante' },
+    blurb:'Half a kilometer of spinning drum and construction gantries. If it flies in the Belt, odds are Tycho built it, fixed it, or armed it.' },
+  { key:'hecate', name:'MCRN Hecate Base', faction:'MCR', model:'military', scale:1.1, pill:'Hecate',
+    parentKey:'mars', orbit:{ dist:5.5, period:26 },
+    facts:{ 'Allegiance':'Martian Congressional Republic Navy', 'Class':'Fleet anchorage & weapons platform', 'Complement':'Donnager-class battleship group', 'Doctrine':'Fewer hulls, superior tech' },
+    blurb:'Mars in one image: a fortress in orbit over a terraforming dream. The MCRN fleet drills here between patrols.' },
+  { key:'l4yard', name:'UNN L4 Fleet Yard', faction:'UN', model:'un', scale:1.2, pill:'L4 Yard',
+    parentKey:'earth', orbit:{ dist:7.5, period:38 },
+    facts:{ 'Allegiance':'United Nations Navy', 'Class':'Orbital shipyard & logistics hub', 'Output':'More tonnage than the rest of the system combined', 'Weakness':'Thirty billion people to feed below' },
+    blurb:'Earth’s answer to everything: build more ships. The yards never go dark, even while the planet below rations protein.' },
+];
+
+const RING_GATE = {
+  key:'gate', name:'The Ring', faction:'UNK', pill:'Ring',
+  facts:{ 'Origin':'Extra-solar — assembled itself from Venus wreckage', 'Diameter':'~1,000 km', 'Status':'Dormant. For now.', 'Advisory':'ALL VESSELS MAINTAIN SAFE DISTANCE' },
+  blurb:'It left Venus, flew past the Belt, and built a door at the edge of the system. Nobody knows who it belongs to. Everybody knows it isn’t ours.'
+};
+
+function factionHex(f){ return FACTION_COLORS[f] || 0xffffff; }
+
+function makeStructMat(){ return new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness:0.5, metalness:0.55 }); }
+function makeDarkMat(){ return new THREE.MeshStandardMaterial({ color: 0x39404a, roughness:0.7, metalness:0.4 }); }
+function makeLightMat(f){ return new THREE.MeshBasicMaterial({ color: factionHex(f) }); }
+
+function addNavLights(group, faction, points){
+  const geo = new THREE.SphereGeometry(0.06, 6, 4);
+  const mat = makeLightMat(faction);
+  points.forEach(p => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(p[0], p[1], p[2]);
+    group.add(m);
+  });
+}
+
+function buildStationModel(st){
+  const g = new THREE.Group();
+  const struct = makeStructMat(), dark = makeDarkMat();
+
+  if(st.model === 'ring'){                       // Tycho: drum + spokes + gantries
+    const drum = new THREE.Mesh(new THREE.TorusGeometry(1, 0.14, 10, 40), struct);
+    g.add(drum);
+    for(let i=0;i<4;i++){
+      const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 2, 6), dark);
+      spoke.rotation.z = (i/4)*Math.PI*2;
+      g.add(spoke);
+    }
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), dark);
+    g.add(core);
+    const gantry = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 2.4), struct);
+    gantry.position.set(0, 0, 0.9);
+    g.add(gantry);
+    const dock = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.5, 8), struct);
+    dock.rotation.x = Math.PI/2; dock.position.set(0,0,2.1);
+    g.add(dock);
+    addNavLights(g, st.faction, [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,2.35]]);
+    g.userData.spin = 0.25;
+  }
+  else if(st.model === 'rock'){                  // Ceres / Eros: spun-up asteroid port
+    const rockGeo = new THREE.IcosahedronGeometry(1, 1);
+    const pos = rockGeo.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      const v = new THREE.Vector3().fromBufferAttribute(pos,i);
+      v.multiplyScalar(rnd(0.85, 1.12));
+      pos.setXYZ(i, v.x, v.y, v.z);
+    }
+    rockGeo.computeVertexNormals();
+    const rockMat = new THREE.MeshStandardMaterial({ color: st.key==='eros' ? 0x554a52 : 0x7d7468, roughness:1 });
+    g.add(new THREE.Mesh(rockGeo, rockMat));
+    // surface habs & docks
+    for(let i=0;i<8;i++){
+      const b = new THREE.Mesh(new THREE.BoxGeometry(rnd(0.1,0.2), rnd(0.1,0.2), rnd(0.2,0.45)), struct);
+      const dir = new THREE.Vector3(rnd(-1,1), rnd(-1,1), rnd(-1,1)).normalize();
+      b.position.copy(dir.multiplyScalar(0.98));
+      b.lookAt(0,0,0);
+      g.add(b);
+    }
+    const dockRing = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.05, 8, 24), struct);
+    dockRing.position.y = 1.02; dockRing.rotation.x = Math.PI/2;
+    g.add(dockRing);
+    addNavLights(g, st.faction, [[0,1.25,0],[1.05,0,0],[-1.05,0,0],[0,0,1.05]]);
+    g.userData.spin = 0.12;
+  }
+  else if(st.model === 'military'){              // MCRN: armored core + weapon spars + escorts
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), dark);
+    g.add(core);
+    for(let i=0;i<3;i++){
+      const spar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.08, 0.08), struct);
+      spar.rotation.y = (i/3)*Math.PI;
+      g.add(spar);
+      const t1 = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.25, 6), dark);
+      t1.position.set(Math.cos((i/3)*Math.PI)*1.2, 0.1, Math.sin((i/3)*Math.PI)*1.2);
+      g.add(t1);
+    }
+    // MCRN escorts on patrol
+    for(let i=0;i<3;i++){
+      const ship = new THREE.Group();
+      const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.5, 6), dark);
+      hull.rotation.x = Math.PI/2;
+      ship.add(hull);
+      const plume = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeGlowSprite('rgba(255,170,80,1)','rgba(224,106,43,0.5)',64), blending:THREE.AdditiveBlending, depthWrite:false }));
+      plume.scale.set(0.3,0.3,1); plume.position.z = 0.35;
+      ship.add(plume);
+      const a = (i/3)*Math.PI*2;
+      ship.position.set(Math.cos(a)*1.9, rnd(-0.3,0.3), Math.sin(a)*1.9);
+      ship.lookAt(0,0,0);
+      g.add(ship);
+    }
+    addNavLights(g, st.faction, [[1.25,0,0],[-1.25,0,0],[0,0.7,0],[0,-0.7,0]]);
+    g.userData.spin = 0.3;
+  }
+  else if(st.model === 'un'){                    // UNN: stacked drydock discs
+    for(let i=0;i<3;i++){
+      const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.7 - i*0.15, 0.7 - i*0.15, 0.12, 18), i%2 ? struct : dark);
+      disc.position.y = -0.35 + i*0.35;
+      g.add(disc);
+    }
+    const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.6, 6), struct);
+    g.add(spine);
+    const antenna = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5, 5), struct);
+    antenna.position.y = 1.0;
+    g.add(antenna);
+    // hulls under construction alongside
+    for(let i=0;i<2;i++){
+      const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 0.7, 6), dark);
+      hull.rotation.z = Math.PI/2;
+      hull.position.set(0.95, -0.15 + i*0.4, 0.2 - i*0.4);
+      g.add(hull);
+    }
+    addNavLights(g, st.faction, [[0.75,0,0],[-0.75,0,0],[0,1.3,0],[0,-0.6,0]]);
+    g.userData.spin = 0.18;
+  }
+
+  g.scale.setScalar(st.scale);
+  return g;
+}
+
+STATIONS.forEach(st => {
+  const parentPlanet = st.parentKey ? PLANETS.find(p => p.key === st.parentKey) : null;
+  const pivot = new THREE.Object3D();
+  pivot.rotation.y = rnd(0, Math.PI*2);
+  (parentPlanet ? parentPlanet._holder : scene).add(pivot);
+
+  const holder = new THREE.Object3D();
+  holder.position.set(st.orbit.dist, 0, 0);
+  pivot.add(holder);
+
+  const model = buildStationModel(st);
+  holder.add(model);
+
+  st._pivot = pivot;
+  st._holder = holder;
+  st._model = model;
+  st.focusRadius = st.scale * 1.6;
+  model.userData.body = st;
+  selectableRoots.push(model);
+});
+
+/* ---------------------------------------------------------------------
+   THE RING GATE — parked beyond Neptune
+--------------------------------------------------------------------- */
+(function buildRingGate(){
+  const holder = new THREE.Object3D();
+  const a = rnd(0, Math.PI*2);
+  holder.position.set(Math.cos(a)*320, 0, Math.sin(a)*320);
+  scene.add(holder);
+
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.TorusGeometry(6, 0.7, 12, 48),
+    new THREE.MeshStandardMaterial({ color: 0x2a2d3a, roughness:0.35, metalness:0.8 })
+  );
+  g.add(body);
+  // eerie interior shimmer
+  const shimmer = new THREE.Mesh(
+    new THREE.CircleGeometry(5.4, 48),
+    new THREE.MeshBasicMaterial({ color: 0x8a6cff, transparent:true, opacity:0.14, side:THREE.DoubleSide })
+  );
+  g.add(shimmer);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeGlowSprite('rgba(160,120,255,0.5)','rgba(90,60,200,0.25)',128),
+    transparent:true, depthWrite:false, blending: THREE.AdditiveBlending
+  }));
+  glow.scale.set(22,22,1);
+  g.add(glow);
+  g.lookAt(0,0,0);
+  holder.add(g);
+
+  RING_GATE._holder = holder;
+  RING_GATE._model = g;
+  RING_GATE.focusRadius = 9;
+  g.userData.body = RING_GATE;
+  selectableRoots.push(g);
+})();
+
+/* ---------------------------------------------------------------------
+   THE ROCINANTE
+--------------------------------------------------------------------- */
+const roci = new THREE.Group();
+(function buildRoci(){
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0x565d66, roughness:0.5, metalness:0.5 });
+  const accentMat = new THREE.MeshStandardMaterial({ color: 0xe06a2b, roughness:0.5, metalness:0.3 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x2c3138, roughness:0.7, metalness:0.4 });
+
+  // main hull — nose points -Z
+  const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, 2.0, 10), hullMat);
+  hull.rotation.x = Math.PI/2;
+  roci.add(hull);
+
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.8, 10), hullMat);
+  nose.rotation.x = -Math.PI/2;
+  nose.position.z = -1.4;
+  roci.add(nose);
+
+  const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.57, 0.57, 0.18, 10), accentMat);
+  stripe.rotation.x = Math.PI/2;
+  stripe.position.z = 0.55;
+  roci.add(stripe);
+
+  // PDC nubs
+  for(const [x,y] of [[0.5,0.2],[-0.5,0.2],[0.35,-0.4],[-0.35,-0.4]]){
+    const pdc = new THREE.Mesh(new THREE.BoxGeometry(0.14,0.14,0.3), darkMat);
+    pdc.position.set(x, y, -0.3);
+    roci.add(pdc);
+  }
+  // engine bells
+  for(const [x,y] of [[0.22,0.22],[-0.22,0.22],[0.22,-0.22],[-0.22,-0.22]]){
+    const bell = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.3, 8), darkMat);
+    bell.rotation.x = Math.PI/2;
+    bell.position.set(x, y, 1.15);
+    roci.add(bell);
+  }
+  roci.visible = false;
+  scene.add(roci);
+})();
+
+const plume = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: makeGlowSprite('rgba(190,230,255,1)','rgba(90,160,255,0.55)',128),
+  transparent:true, depthWrite:false, blending: THREE.AdditiveBlending
+}));
+plume.position.z = 1.7;
+plume.scale.set(0.1,0.1,1);
+roci.add(plume);
+
+/* ---------------------------------------------------------------------
+   LABELS
 --------------------------------------------------------------------- */
 const labelLayer = document.getElementById('labelLayer');
 let labelsOn = false;
-const labelEls = {};
-function makeLabel(key, text){
+const labelEntries = [];   // { el, obj }
+function makeLabel(text, obj){
   const el = document.createElement('div');
   el.className = 'label'; el.textContent = text;
   el.style.display = 'none';
   labelLayer.appendChild(el);
-  labelEls[key] = el;
+  labelEntries.push({ el, obj });
 }
-makeLabel('sun', 'Sun');
-PLANETS.forEach(p => makeLabel(p.key, p.name));
+makeLabel('Sol', sunMesh);
+PLANETS.forEach(p => makeLabel(p.name, p._mesh));
+STATIONS.forEach(s => makeLabel(s.name, s._model));
+makeLabel('The Ring', RING_GATE._model);
 
 const _v = new THREE.Vector3();
+const _camDir = new THREE.Vector3();
 function updateLabels(){
   if(!labelsOn) return;
-  function place(el, obj3d, size){
-    obj3d.getWorldPosition(_v);
-    const behind = _v.clone().sub(camera.position).dot(camera.getWorldDirection(new THREE.Vector3())) < 0;
+  camera.getWorldDirection(_camDir);
+  labelEntries.forEach(({el, obj}) => {
+    obj.getWorldPosition(_v);
+    const behind = _v.clone().sub(camera.position).dot(_camDir) < 0;
     _v.project(camera);
     if(behind || _v.z > 1){ el.style.display = 'none'; return; }
     el.style.display = 'block';
     el.style.left = ((_v.x*0.5+0.5)*window.innerWidth) + 'px';
-    el.style.top = ((-_v.y*0.5+0.5)*window.innerHeight - size) + 'px';
-  }
-  place(labelEls['sun'], sunMesh, 14);
-  PLANETS.forEach(p => place(labelEls[p.key], p._mesh, 10));
+    el.style.top = ((-_v.y*0.5+0.5)*window.innerHeight - 10) + 'px';
+  });
 }
+function hideAllLabels(){ labelEntries.forEach(e => e.el.style.display = 'none'); }
 
 /* ---------------------------------------------------------------------
-   RAYCAST SELECTION
+   SELECTION (raycast) — disabled while flying
 --------------------------------------------------------------------- */
 const raycaster = new THREE.Raycaster();
 const pointerNDC = new THREE.Vector2();
 let pointerDownPos = null;
 
-renderer.domElement.addEventListener('pointerdown', (e) => {
-  pointerDownPos = { x: e.clientX, y: e.clientY };
-});
 renderer.domElement.addEventListener('pointerup', (e) => {
+  if(shipMode) return;
   if(!pointerDownPos) return;
   const dx = e.clientX - pointerDownPos.x, dy = e.clientY - pointerDownPos.y;
   pointerDownPos = null;
-  if(Math.hypot(dx,dy) > 8) return; // treat as drag, not tap
+  if(Math.hypot(dx,dy) > 8) return;
   pointerNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
   pointerNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointerNDC, camera);
-  const hits = raycaster.intersectObjects([sunMesh, ...planetMeshes], false);
+  const hits = raycaster.intersectObjects([sunMesh, ...selectableRoots], true);
   if(hits.length){
-    const obj = hits[0].object;
-    if(obj === sunMesh) selectSun();
-    else {
-      const idx = planetMeshes.indexOf(obj);
-      if(idx >= 0) selectPlanet(idx);
-    }
+    let o = hits[0].object;
+    if(o === sunMesh){ selectSun(); return; }
+    while(o && !o.userData.body) o = o.parent;
+    if(o && o.userData.body) selectBody(o.userData.body);
   }
 });
 
 /* ---------------------------------------------------------------------
-   CAMERA FOCUS / TWEEN LOGIC
+   CAMERA FOCUS / TWEEN
 --------------------------------------------------------------------- */
-let followIndex = null; // null => sun
+let followHolder = null;    // Object3D we track, or null for Sol/origin
 const prevTargetPos = new THREE.Vector3(0,0,0);
 let tweening = false, tStart=0, tDur=1.2;
 const tweenFrom = new THREE.Vector3(), tweenTo = new THREE.Vector3();
@@ -657,39 +984,35 @@ function tweenCameraTo(pos, duration){
 }
 
 function currentTargetWorldPos(){
-  if(followIndex === null) return new THREE.Vector3(0,0,0);
-  return planetHolders[followIndex].getWorldPosition(new THREE.Vector3());
+  if(!followHolder) return new THREE.Vector3(0,0,0);
+  return followHolder.getWorldPosition(new THREE.Vector3());
 }
 
-function focusOn(index, radius, colorHex){
-  followIndex = index;
+function selectSun(){
+  if(shipMode) return;
+  followHolder = null;
+  tweenCameraTo(new THREE.Vector3(0, 40, 90), 1.3);
+  showInfo(SUN_BODY);
+  setActivePill('sun');
+}
+
+function selectBody(body){
+  if(shipMode) return;
+  followHolder = body._holder;
   const worldPos = currentTargetWorldPos();
-  // Bias the approach toward the sun-facing hemisphere so the planet
-  // reads as lit/detailed rather than showing its night side.
+  // approach from the sun-lit side so the body reads detailed, not silhouetted
   let dir = worldPos.clone().normalize().negate();
   if(dir.lengthSq() < 0.001) dir.set(0.6,0.35,0.7);
   dir.y += 0.32;
   dir.normalize();
-  const dist = Math.max(radius*7.5, 8) + 4;
+  const dist = Math.max(body.focusRadius*7.5, 8) + 4;
   tweenCameraTo(worldPos.clone().add(dir.multiplyScalar(dist)), 1.3);
-}
-
-function selectSun(){
-  followIndex = null;
-  tweenCameraTo(new THREE.Vector3(0, 40, 90), 1.3);
-  showInfo('Sun', 'Star', SUN_FACTS, SUN_BLURB);
-  setActivePill('sun');
-}
-
-function selectPlanet(idx){
-  const data = PLANETS[idx];
-  focusOn(idx, data.radius);
-  showInfo(data.name, 'Planet', data.facts, data.blurb);
-  setActivePill(data.key);
+  showInfo(body);
+  setActivePill(body.key);
 }
 
 function resetView(){
-  followIndex = null;
+  followHolder = null;
   tweenCameraTo(DEFAULT_CAM_POS, 1.4);
   hideInfo();
   setActivePill(null);
@@ -704,42 +1027,47 @@ const infoTag = document.getElementById('infoTag');
 const infoFacts = document.getElementById('infoFacts');
 const infoBlurb = document.getElementById('infoBlurb');
 
-function showInfo(name, tag, facts, blurb){
-  infoName.textContent = name;
-  infoTag.textContent = tag;
+function showInfo(body){
+  infoName.textContent = body.name;
+  infoTag.textContent = FACTION_NAMES[body.faction] || body.faction;
+  infoTag.className = 'chip ' + body.faction;
   infoFacts.innerHTML = '';
-  Object.entries(facts).forEach(([k,v]) => {
+  Object.entries(body.facts).forEach(([k,v]) => {
     const row = document.createElement('div');
     row.className = 'fact';
     row.innerHTML = `<span>${k}</span><span>${v}</span>`;
     infoFacts.appendChild(row);
   });
-  infoBlurb.textContent = blurb;
+  infoBlurb.textContent = body.blurb;
   infoPanel.classList.add('open');
 }
 function hideInfo(){ infoPanel.classList.remove('open'); }
 document.getElementById('infoClose').addEventListener('click', resetView);
 
 /* ---------------------------------------------------------------------
-   PLANET QUICK-SELECT BAR
+   QUICK-SELECT BAR
 --------------------------------------------------------------------- */
 const planetBar = document.getElementById('planetBar');
-function addPill(key, label, colorHex, onClick){
+function addPill(key, label, colorHex, diamond, onClick){
   const btn = document.createElement('button');
   btn.className = 'pbtn';
   btn.dataset.key = key;
-  btn.innerHTML = `<span class="dot" style="background:#${colorHex.toString(16).padStart(6,'0')}; color:#${colorHex.toString(16).padStart(6,'0')}"></span><span>${label}</span>`;
+  const hex = '#' + colorHex.toString(16).padStart(6,'0');
+  btn.innerHTML = `<span class="dot${diamond?' diamond':''}" style="background:${hex}; color:${hex}"></span><span>${label}</span>`;
   btn.addEventListener('click', onClick);
   planetBar.appendChild(btn);
 }
-addPill('sun', 'Sun', 0xffcc55, selectSun);
-PLANETS.forEach((p, i) => addPill(p.key, p.name, p.color, () => selectPlanet(i)));
+addPill('sun', 'Sol', 0xffd35c, false, selectSun);
+PLANETS.forEach(p => addPill(p.key, p.name, p.color, false, () => selectBody(p)));
+STATIONS.forEach(s => addPill(s.key, s.pill, factionHex(s.faction), true, () => selectBody(s)));
+addPill('gate', RING_GATE.pill, factionHex('UNK'), true, () => selectBody(RING_GATE));
+
 function setActivePill(key){
   [...planetBar.children].forEach(el => el.classList.toggle('active', el.dataset.key === key));
 }
 
 /* ---------------------------------------------------------------------
-   TOOLBAR: play/pause, speed, labels, gyro, reset
+   TOOLBAR
 --------------------------------------------------------------------- */
 let paused = false;
 let daysPerSecond = 8;
@@ -754,9 +1082,12 @@ document.getElementById('speed').addEventListener('input', (e) => {
 document.getElementById('btnLabels').addEventListener('click', (e) => {
   labelsOn = !labelsOn;
   e.target.classList.toggle('on', labelsOn);
-  if(!labelsOn) Object.values(labelEls).forEach(el => el.style.display = 'none');
+  if(!labelsOn) hideAllLabels();
 });
-document.getElementById('btnReset').addEventListener('click', resetView);
+document.getElementById('btnReset').addEventListener('click', () => {
+  if(shipMode) exitShipMode();
+  resetView();
+});
 
 const gyroModal = document.getElementById('gyroModal');
 const btnGyro = document.getElementById('btnGyro');
@@ -773,9 +1104,10 @@ document.getElementById('gyroAllow').addEventListener('click', async () => {
       if(res !== 'granted') return;
     }
     enableGyro();
-  } catch(err){ /* device orientation unsupported / denied */ }
+  } catch(err){ /* unsupported / denied */ }
 });
 function enableGyro(){
+  if(shipMode) exitShipMode();
   deviceControls = new THREE.DeviceOrientationControls(camera);
   orbitControls.enabled = false;
   gyroActive = true;
@@ -783,9 +1115,201 @@ function enableGyro(){
 }
 function disableGyro(){
   if(deviceControls){ deviceControls.disconnect(); deviceControls = null; }
-  orbitControls.enabled = true;
+  orbitControls.enabled = !shipMode;
   gyroActive = false;
   btnGyro.classList.remove('on');
+}
+
+/* ---------------------------------------------------------------------
+   SHIP MODE — fly the Rocinante
+   Drag steers. ↑/W burn, ↓/S retro, Shift = Epstein boost, Space = brake.
+   Touch: hold the BURN / RETRO / FLIP&BURN buttons. Wheel/pinch = camera.
+--------------------------------------------------------------------- */
+let shipMode = false;
+let shipYaw = 0, shipPitch = 0;
+const shipVel = new THREE.Vector3();
+let chaseDist = 9;
+const keys = { fwd:false, back:false, left:false, right:false, boost:false, brake:false };
+const touchThrust = { burn:false, retro:false, brake:false };
+
+const ACCEL = 26;            // units/s²
+const MAX_SPEED = 48;        // cruise cap
+const BOOST_MULT = 3.2;      // Epstein drive
+
+const btnShip = document.getElementById('btnShip');
+const shipHUD = document.getElementById('shipHUD');
+const thrustPad = document.getElementById('thrustPad');
+const steerHint = document.getElementById('steerHint');
+const hudVel = document.getElementById('hudVel');
+const hudThr = document.getElementById('hudThr');
+const hudNear = document.getElementById('hudNear');
+const hintEl = document.getElementById('hint');
+
+btnShip.addEventListener('click', () => shipMode ? exitShipMode() : enterShipMode());
+
+function enterShipMode(){
+  if(gyroActive) disableGyro();
+  shipMode = true;
+  tweening = false;
+  followHolder = null;
+  hideInfo();
+  setActivePill(null);
+
+  // spawn at the camera, pointed where the camera is looking
+  roci.position.copy(camera.position);
+  const look = new THREE.Vector3();
+  camera.getWorldDirection(look);
+  shipYaw = Math.atan2(-look.x, -look.z);
+  shipPitch = Math.asin(THREE.MathUtils.clamp(look.y, -1, 1));
+  shipVel.set(0,0,0);
+  roci.visible = true;
+
+  orbitControls.enabled = false;
+  btnShip.classList.add('on');
+  shipHUD.style.display = 'block';
+  thrustPad.style.display = 'flex';
+  steerHint.style.display = 'block';
+  hintEl.style.display = 'none';
+  syncControlsHeight();
+}
+
+function exitShipMode(){
+  shipMode = false;
+  roci.visible = false;
+  orbitControls.enabled = true;
+  orbitControls.target.copy(roci.position).add(new THREE.Vector3(0,0,-1));
+  btnShip.classList.remove('on');
+  shipHUD.style.display = 'none';
+  thrustPad.style.display = 'none';
+  steerHint.style.display = 'none';
+}
+
+// keyboard
+window.addEventListener('keydown', (e) => {
+  if(e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.fwd = true;
+  else if(e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.back = true;
+  else if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+  else if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+  else if(e.key === 'Shift') keys.boost = true;
+  else if(e.key === ' ') keys.brake = true;
+  else if(e.key === 'Escape' && shipMode) exitShipMode();
+  else return;
+  if(shipMode) e.preventDefault();
+});
+window.addEventListener('keyup', (e) => {
+  if(e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.fwd = false;
+  else if(e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.back = false;
+  else if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+  else if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+  else if(e.key === 'Shift') keys.boost = false;
+  else if(e.key === ' ') keys.brake = false;
+});
+
+// touch thrust buttons (hold to fire)
+function holdButton(el, prop){
+  const on = (e) => { e.preventDefault(); touchThrust[prop] = true; };
+  const off = () => { touchThrust[prop] = false; };
+  el.addEventListener('pointerdown', on);
+  el.addEventListener('pointerup', off);
+  el.addEventListener('pointercancel', off);
+  el.addEventListener('pointerleave', off);
+}
+holdButton(document.getElementById('btnBurn'), 'burn');
+holdButton(document.getElementById('btnRetro'), 'retro');
+holdButton(document.getElementById('btnBrake'), 'brake');
+
+// pointer steering + pinch camera zoom (ship mode)
+const activePointers = new Map();
+let pinchStartDist = 0, pinchStartChase = 9;
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  pointerDownPos = { x: e.clientX, y: e.clientY };
+  if(!shipMode) return;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if(activePointers.size === 2){
+    const pts = [...activePointers.values()];
+    pinchStartDist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+    pinchStartChase = chaseDist;
+  }
+});
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if(!shipMode) return;
+  const p = activePointers.get(e.pointerId);
+  if(!p) return;
+  if(activePointers.size === 1){
+    shipYaw   -= (e.clientX - p.x) * 0.0042;
+    shipPitch -= (e.clientY - p.y) * 0.0042;
+    shipPitch = THREE.MathUtils.clamp(shipPitch, -1.35, 1.35);
+  }
+  p.x = e.clientX; p.y = e.clientY;
+  if(activePointers.size === 2){
+    const pts = [...activePointers.values()];
+    const d = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+    if(pinchStartDist > 0) chaseDist = THREE.MathUtils.clamp(pinchStartChase * pinchStartDist / d, 3, 160);
+  }
+});
+function clearPointer(e){ activePointers.delete(e.pointerId); }
+renderer.domElement.addEventListener('pointerup', clearPointer);
+renderer.domElement.addEventListener('pointercancel', clearPointer);
+
+renderer.domElement.addEventListener('wheel', (e) => {
+  if(!shipMode) return;
+  e.preventDefault();
+  chaseDist = THREE.MathUtils.clamp(chaseDist * (1 + e.deltaY * 0.0012), 3, 160);
+}, { passive: false });
+
+// nearest-body readout
+const NAV_POINTS = [
+  { name:'SOL', get: () => new THREE.Vector3(0,0,0) },
+  ...PLANETS.map(p => ({ name: p.name.toUpperCase(), get: () => p._holder.getWorldPosition(new THREE.Vector3()) })),
+  ...STATIONS.map(s => ({ name: s.name.toUpperCase(), get: () => s._holder.getWorldPosition(new THREE.Vector3()) })),
+  { name:'THE RING', get: () => RING_GATE._holder.getWorldPosition(new THREE.Vector3()) },
+];
+
+function updateShip(dt){
+  // steering: drag sets yaw/pitch directly; arrow keys also steer
+  if(keys.left)  shipYaw += 1.7 * dt;
+  if(keys.right) shipYaw -= 1.7 * dt;
+  roci.rotation.set(shipPitch, shipYaw, 0, 'YXZ');
+
+  const fwd = new THREE.Vector3(0,0,-1).applyEuler(roci.rotation);
+  const boost = keys.boost ? BOOST_MULT : 1;
+  const burning = keys.fwd || touchThrust.burn;
+  const retro = keys.back || touchThrust.retro;
+  const braking = keys.brake || touchThrust.brake;
+
+  if(burning) shipVel.addScaledVector(fwd, ACCEL * boost * dt);
+  if(retro)   shipVel.addScaledVector(fwd, -ACCEL * 0.7 * dt);
+  if(braking) shipVel.multiplyScalar(Math.max(0, 1 - 3.2*dt));
+
+  const cap = MAX_SPEED * boost;
+  if(shipVel.length() > cap) shipVel.setLength(cap);
+  roci.position.addScaledVector(shipVel, dt);
+
+  // drive plume scales with burn
+  const thrustLevel = burning ? (keys.boost ? 1 : 0.6) : (retro ? 0.25 : 0);
+  const target = 0.1 + thrustLevel * 3.2;
+  plume.scale.x += (target - plume.scale.x) * Math.min(1, 10*dt);
+  plume.scale.y = plume.scale.x;
+
+  // chase camera
+  const camPos = roci.position.clone()
+    .addScaledVector(fwd, -chaseDist)
+    .add(new THREE.Vector3(0, chaseDist*0.35, 0));
+  camera.position.lerp(camPos, 1 - Math.pow(0.0001, dt));
+  const lookAt = roci.position.clone().addScaledVector(fwd, 12);
+  camera.lookAt(lookAt);
+
+  // HUD
+  const kms = shipVel.length() * 3000;   // 1 unit ≈ 3,000 km (dramatized scale)
+  hudVel.textContent = kms >= 1000 ? (kms/1000).toFixed(1) + 'k km/s' : kms.toFixed(0) + ' km/s';
+  hudThr.textContent = braking ? 'FLIP & BURN' : (burning ? (keys.boost ? 'EPSTEIN' : 'BURN') : (retro ? 'RETRO' : 'IDLE'));
+  let best = null, bestD = Infinity;
+  for(const n of NAV_POINTS){
+    const d = n.get().distanceTo(roci.position);
+    if(d < bestD){ bestD = d; best = n; }
+  }
+  if(best) hudNear.textContent = best.name + ' ' + (bestD*3).toFixed(0) + ' Mm';
 }
 
 /* ---------------------------------------------------------------------
@@ -804,26 +1328,30 @@ function animate(){
       p._mesh.rotation.y += (Math.PI*2 / p.rotationPeriod) * days;
       if(p.moons) p.moons.forEach(m => { m._pivot.rotation.y += (Math.PI*2 / m.orbitalPeriod) * days; });
     });
+    STATIONS.forEach(s => {
+      s._pivot.rotation.y += (Math.PI*2 / s.orbit.period) * days;
+      s._model.rotation.y += (s._model.userData.spin || 0.1) * dt;
+    });
+    RING_GATE._model.rotation.z += 0.02 * dt;
   }
 
-  if(tweening){
-    let t = (clock.getElapsedTime() - tStart) / tDur;
-    if(t >= 1){ t = 1; tweening = false; }
-    camera.position.lerpVectors(tweenFrom, tweenTo, easeInOut(t));
+  if(shipMode){
+    updateShip(dt);
   } else {
+    if(tweening){
+      let t = (clock.getElapsedTime() - tStart) / tDur;
+      if(t >= 1){ t = 1; tweening = false; }
+      camera.position.lerpVectors(tweenFrom, tweenTo, easeInOut(t));
+    } else if(followHolder){
+      const targetPos = currentTargetWorldPos();
+      camera.position.add(targetPos.clone().sub(prevTargetPos));
+    }
     const targetPos = currentTargetWorldPos();
-    const delta = targetPos.clone().sub(prevTargetPos);
-    if(followIndex !== null) camera.position.add(delta);
-  }
+    orbitControls.target.copy(targetPos);
+    prevTargetPos.copy(targetPos);
 
-  const targetPos = currentTargetWorldPos();
-  orbitControls.target.copy(targetPos);
-  prevTargetPos.copy(targetPos);
-
-  if(gyroActive && deviceControls){
-    deviceControls.update();
-  } else {
-    orbitControls.update();
+    if(gyroActive && deviceControls) deviceControls.update();
+    else orbitControls.update();
   }
 
   updateLabels();
@@ -838,10 +1366,7 @@ window.addEventListener('load', () => {
   loading.style.opacity = '0';
   setTimeout(() => loading.style.display = 'none', 650);
 });
-setTimeout(() => {
-  const hint = document.getElementById('hint');
-  if(hint) hint.style.opacity = '0';
-}, 6000);
+setTimeout(() => { hintEl.style.opacity = '0'; }, 8000);
 
 animate();
 
