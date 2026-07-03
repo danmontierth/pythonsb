@@ -78,6 +78,32 @@
   body.theme-retro { --teal:#ffb13b; --teal-dim:rgba(255,177,59,.45); --un:#ff6a4d; --mcr:#d6483c; --opa:#6ac8b8; --ink:#fff2df; --panel:rgba(30,16,8,.8); }
   body.theme-retro .cut { clip-path: none; border-radius: 4px; border-width: 2px; }
   body.theme-chaos { --teal:#3bffec; --teal-dim:rgba(59,255,236,.4); --un:#ffe100; --mcr:#ff3bd4; --opa:#7cff00; --ink:#f4ffff; --panel:rgba(20,4,30,.78); }
+  body.theme-wars { --teal:#ffd54a; --teal-dim:rgba(255,213,74,.4); --un:#ff6b3d; --mcr:#9aa7b8; --opa:#58c470; --ink:#f5efdc; --panel:rgba(10,12,20,.85); }
+
+  /* ---- Death Star battle UI ---- */
+  .wars-only { display: none !important; }
+  body.theme-wars .wars-only { display: flex !important; }
+  #thrustPad #btnFire { border-color: #ffd54a; color: #ffd54a; background: rgba(255,213,74,.08); }
+  #thrustPad #btnFire:active { background: #ffd54a; color: #231a02; }
+  #thrustPad #btnTorp { border-color: #ff9a30; color: #ff9a30; background: rgba(255,154,48,.08); }
+  #thrustPad #btnTorp:active { background: #ff9a30; color: #231a02; }
+  #crosshair {
+    display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    z-index: 11; width: 36px; height: 36px; pointer-events: none;
+  }
+  #crosshair:before, #crosshair:after { content: ''; position: absolute; background: rgba(255,213,74,.85); }
+  #crosshair:before { left: 50%; top: 0; width: 1.5px; height: 100%; transform: translateX(-50%); }
+  #crosshair:after { top: 50%; left: 0; height: 1.5px; width: 100%; transform: translateY(-50%); }
+  body.theme-wars.flying #crosshair { display: block; }
+  #flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 38; transition: opacity .25s; }
+  #dmg { position: fixed; inset: 0; background: radial-gradient(ellipse at center, transparent 52%, rgba(255,40,20,.55) 100%); opacity: 0; pointer-events: none; z-index: 37; }
+  #warsBanner {
+    position: fixed; left: 50%; top: 38%; transform: translate(-50%,-50%); z-index: 39;
+    display: none; text-align: center; padding: 24px 32px; color: var(--ink); max-width: 90vw;
+  }
+  #warsBanner h2 { margin: 0 0 6px; letter-spacing: .18em; color: #ffd54a; text-transform: uppercase; }
+  #warsBanner p { margin: 0 0 16px; opacity: .8; font-size: 13px; line-height: 1.5; }
+  #warsBanner button { background: #ffd54a; color: #231a02; border: none; padding: 10px 20px; letter-spacing: .1em; cursor: pointer; text-transform: uppercase; font-size: 12px; }
 
   #hint {
     top: calc(max(10px, env(safe-area-inset-top)) + 118px); right: 12px; text-align: right;
@@ -234,6 +260,7 @@
 <div id="themeTabs" class="glass cut">
   <button data-theme="expanse" class="on">Expanse</button>
   <button data-theme="trek">Trek</button>
+  <button data-theme="wars">Wars</button>
   <button data-theme="neon">Neon</button>
   <button data-theme="retro">Retro</button>
   <button data-theme="chaos">Chaos</button>
@@ -248,6 +275,19 @@
   <div class="row"><span class="k">Vel</span><span class="v mono" id="hudVel">0 km/s</span></div>
   <div class="row"><span class="k">Drive</span><span class="v mono" id="hudThr">IDLE</span></div>
   <div class="row"><span class="k">Nearest</span><span class="v mono" id="hudNear">—</span></div>
+  <div class="row wars-only"><span class="k">Shield</span><span class="v mono" id="hudShield">100%</span></div>
+  <div class="row wars-only"><span class="k">Torps</span><span class="v mono" id="hudTorps">6</span></div>
+  <div class="row wars-only"><span class="k">Kills</span><span class="v mono" id="hudKills">0</span></div>
+  <div class="row wars-only"><span class="k">Port</span><span class="v mono" id="hudPort">—</span></div>
+</div>
+
+<div id="crosshair"></div>
+<div id="dmg"></div>
+<div id="flash"></div>
+<div id="warsBanner" class="glass cut">
+  <h2 id="warsBannerTitle">Great shot, kid!</h2>
+  <p id="warsBannerText">That was one in a million. The Death Star is destroyed.</p>
+  <button id="warsReset">Reset the battle</button>
 </div>
 
 <div id="steerHint">Drag: steer<br>↑/W burn · ↓/S retro<br>Shift: epstein · Space: flip&amp;burn<br>Wheel/pinch: camera</div>
@@ -277,6 +317,8 @@
 <div id="thrustPad">
   <button id="btnBurn">▲ Burn</button>
   <button id="btnRetro">▼ Retro</button>
+  <button id="btnFire" class="wars-only">✦ Fire</button>
+  <button id="btnTorp" class="wars-only">◎ Torpedo</button>
   <button id="btnBrake">■ Flip&amp;Burn</button>
 </div>
 
@@ -574,6 +616,102 @@ sunGlow.scale.set(60,60,1);
 sunGroup.add(sunGlow);
 
 /* ---------------------------------------------------------------------
+   DEATH STAR — replaces the sun in the Wars theme
+--------------------------------------------------------------------- */
+function makeDSTexture(W,H){
+  const c = newCanvas(W,H), ctx = c.getContext('2d');
+  const k = (W*H)/(512*256);
+  ctx.fillStyle = '#7e838c'; ctx.fillRect(0,0,W,H);
+  for(let i=0;i<900*k;i++){
+    ctx.strokeStyle = `rgba(30,34,40,${rnd(0.08,0.3).toFixed(2)})`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(rnd(0,W), rnd(0,H), rnd(4,26), rnd(3,14));
+  }
+  for(let i=0;i<400*k;i++){
+    ctx.fillStyle = `rgba(50,54,62,${rnd(0.1,0.3).toFixed(2)})`;
+    ctx.fillRect(rnd(0,W), rnd(0,H), rnd(3,18), rnd(2,10));
+  }
+  for(let i=0;i<260*k;i++){
+    ctx.fillStyle = 'rgba(215,228,255,0.5)';
+    ctx.fillRect(rnd(0,W), rnd(0,H), 1.2, 1.2);
+  }
+  // dark equatorial trench band
+  ctx.fillStyle = '#33363d';
+  ctx.fillRect(0, H/2 - H*0.02, W, H*0.04);
+  return new THREE.CanvasTexture(c);
+}
+
+const deathStar = new THREE.Group();
+const DS_R = 13;
+const dsMat = new THREE.MeshStandardMaterial({ map: makeDSTexture(1024,512), roughness: 0.85, metalness: 0.15 });
+deathStar.add(new THREE.Mesh(new THREE.SphereGeometry(DS_R, 64, 48), dsMat));
+// trench walls (raised above the surface, groove between them)
+const dsWallMat = new THREE.MeshStandardMaterial({ color: 0x4a4e57, roughness: 0.8, metalness: 0.2 });
+for(const y of [0.85, -0.85]){
+  const wallGeo = new THREE.TorusGeometry(13.3, 0.55, 8, 96);
+  wallGeo.rotateX(Math.PI/2);
+  const wall = new THREE.Mesh(wallGeo, dsWallMat);
+  wall.position.y = y;
+  deathStar.add(wall);
+}
+// superlaser dish
+(function(){
+  const dishDir = new THREE.Vector3(0.5, 0.62, 0.6).normalize();
+  const dish = new THREE.Group();
+  const plate = new THREE.Mesh(new THREE.CircleGeometry(3.2, 40), new THREE.MeshStandardMaterial({ color: 0x4b4f58, roughness: 0.7, metalness: 0.3 }));
+  dish.add(plate);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.16, 8, 40), dsWallMat);
+  dish.add(rim);
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8), new THREE.MeshBasicMaterial({ color: 0x7dffa0 }));
+  eye.position.z = 0.1;
+  dish.add(eye);
+  dish.position.copy(dishDir.clone().multiplyScalar(DS_R + 0.05));
+  dish.lookAt(dishDir.clone().multiplyScalar(DS_R * 3));
+  deathStar.add(dish);
+  deathStar.userData.dishDir = dishDir;
+})();
+// surface greebles
+(function(){
+  const geo = new THREE.BoxGeometry(0.5, 0.22, 0.7);
+  const mesh = new THREE.InstancedMesh(geo, dsWallMat, 320);
+  const dummy = new THREE.Object3D();
+  const dishDir = deathStar.userData.dishDir;
+  let i = 0, guard = 0;
+  while(i < 320 && guard++ < 4000){
+    const dir = new THREE.Vector3(rnd(-1,1), rnd(-1,1), rnd(-1,1)).normalize();
+    if(Math.abs(dir.y * DS_R) < 1.9) continue;          // keep the trench clear
+    if(dir.dot(dishDir) > 0.92) continue;               // keep the dish clear
+    dummy.position.copy(dir.clone().multiplyScalar(DS_R));
+    dummy.lookAt(dir.clone().multiplyScalar(DS_R*2));
+    const s = rnd(0.6, 2.2);
+    dummy.scale.set(s, s, rnd(0.6, 1.4));
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i++, dummy.matrix);
+  }
+  deathStar.add(mesh);
+})();
+// thermal exhaust port — the target
+const PORT_POS = new THREE.Vector3(DS_R + 0.05, 0, 0);
+const dsPort = new THREE.Mesh(new THREE.CircleGeometry(0.34, 12), new THREE.MeshBasicMaterial({ color: 0xffa030 }));
+dsPort.position.copy(PORT_POS);
+dsPort.rotation.y = Math.PI/2;
+deathStar.add(dsPort);
+const dsPortGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: makeGlowSprite('rgba(255,170,60,0.9)','rgba(255,120,30,0.35)',64),
+  transparent:true, depthWrite:false, blending: THREE.AdditiveBlending
+}));
+dsPortGlow.position.copy(PORT_POS);
+dsPortGlow.scale.set(2.4, 2.4, 1);
+deathStar.add(dsPortGlow);
+deathStar.visible = false;
+scene.add(deathStar);
+
+const warsLight = new THREE.DirectionalLight(0xfff4e0, 1.25);
+warsLight.position.set(60, 35, 80);
+warsLight.visible = false;
+scene.add(warsLight);
+
+/* ---------------------------------------------------------------------
    FACTIONS
 --------------------------------------------------------------------- */
 const FACTION_COLORS = { UN: 0x3d7dd6, MCR: 0xe06a2b, OPA: 0x57c7b8, SOL: 0xffd35c, UNK: 0xb48ce8 };
@@ -732,6 +870,38 @@ const THEMES = {
         anns:['Some assembly required','Hull (60% vibes)','Crane game','Warranty void zone'] },
       gate: { name:'The Wobbly Hole', pill:'Wobbly Hole', facts:{ 'Type':'Hole (wobbly)', 'Inside':'Do NOT', 'Wobble rating':'8.9' }, blurb:'It wobbles. It hums. Sometimes it wobbles AND hums. The Fan Club sells tickets; the Syndicate sells earplugs.',
         anns:['Alloy of questionable origin',{t:'The wobbly bit',warn:true},'Ø big','Beyond: ????'] }
+    }
+  },
+
+  wars: {
+    title: 'BATTLE OF THE DEATH STAR', sub: 'A long time ago, in a galaxy far, far away…',
+    shipHud: '▮ RED FIVE — T-65B X-WING · S-FOILS LOCKED IN ATTACK POSITION',
+    orbitColor: 0x3a4a6a, sunTint: 0xffffff,
+    factionNames: { UN:'Rebel Alliance', MCR:'Galactic Empire', OPA:'Smugglers & Free Traders', SOL:'DS-1 Battle Station', UNK:'The Force' },
+    bodies: {
+      sun: { name:'Death Star', pill:'Death Star', faction:'MCR',
+        facts:{ 'Class':'DS-1 Orbital Battle Station', 'Diameter':'160 km', 'Crew':'1.7 million (for now)', 'Weakness':'Thermal exhaust port — 2 m wide', 'Intel':'That’s no moon' },
+        blurb:'An analysis of the plans has demonstrated a weakness: a small thermal exhaust port at the end of the equatorial trench. A precise torpedo hit will start a chain reaction. May the Force be with you.',
+        anns:['Superlaser dish',{t:'Equatorial trench — attack vector',warn:true},{t:'Thermal exhaust port — 2 m',warn:true},'Turbolaser grid'] },
+      mercury: { name:'Mustafar', faction:'MCR', facts:{ 'Terrain':'Lava rivers', 'Note':'The high ground is advised' }, blurb:'Mining world of fire. Bad memories all around.' },
+      venus: { name:'Bespin', faction:'OPA', facts:{ 'City':'Cloud City', 'Administrator':'A baron with a cape', 'Deals':'Getting worse all the time' }, blurb:'A gas mining colony floating in amber clouds. Lovely views; read the fine print.' },
+      earth: { name:'Alderaan', faction:'UN', facts:{ 'Status':'Peaceful — no weapons', 'Culture':'Art, poetry, diplomacy', 'Advisory':'Keep the battle station away from it' }, blurb:'The jewel of the Core. As long as the Rebellion holds, Alderaan endures.' },
+      mars: { name:'Geonosis', faction:'MCR', facts:{ 'Industry':'Droid foundries', 'Weather':'Red dust', 'Arena':'Occupied' }, blurb:'Ringed factories once hammered out an army here. The Empire kept the tooling.' },
+      jupiter: { name:'Yavin Prime', faction:'UN', facts:{ 'Moon':'Yavin 4 — Rebel base', 'Status':'In superlaser range soon', 'Countdown':'Minutes' }, blurb:'The great red gas giant. Behind it hides the temple base — and the whole Rebellion.' },
+      saturn: { name:'Endor System', faction:'UNK', facts:{ 'Moon':'Forest sanctuary moon', 'Locals':'Small. Furry. Surprisingly dangerous.' }, blurb:'Far from the fight, the forest moon waits for its own war.' },
+      uranus: { name:'Hoth', faction:'UN', facts:{ 'Climate':'-60° on a warm day', 'Wildlife':'Wampas', 'Future use':'Echo Base (classified)' }, blurb:'An ice world nobody would think to search. Which is exactly the point.' },
+      neptune: { name:'Kamino', faction:'UNK', facts:{ 'Weather':'Rain. Always rain.', 'Industry':'Cloning (discontinued)', 'Records':'Erased' }, blurb:'The ocean world that grew an army and got deleted from the archives for its trouble.' },
+      ceres: { name:'Ord Mantell', pill:'Ord Mantell', faction:'OPA', facts:{ 'Role':'Smuggler port', 'Bounty hunters':'Many', 'Run into one':'You will' }, blurb:'Every debt in the Outer Rim eventually gets called in here.' },
+      eros: { name:'Wreck of the Avenger', pill:'Wreck', faction:'UNK', facts:{ 'Was':'Imperial Star Destroyer', 'Now':'Scrap and ghosts', 'Salvage rights':'Cursed, per locals' }, blurb:'A kilometer of dead Star Destroyer drifting with the rocks. Scavengers say the lights still blink.',
+        anns:[{t:'Hull breach — reactor',warn:true},{t:'Dead bridge tower',warn:true},{t:'Scavenger cuts',warn:true},{t:'Thermal ghost readings',warn:true},{t:'Escape pods: none',warn:true}] },
+      tycho: { name:'Home One — Rebel Fleet', pill:'Home One', faction:'UN', facts:{ 'Class':'MC80 Star Cruiser', 'Role':'Fleet command', 'Fighter wings':'Red, Gold, Green' }, blurb:'The Alliance flagship and her escorts, holding station beyond the moon. All wings report in.',
+        anns:['Command bridge','Fighter bays — Red Squadron','Shield generators','Medical frigate escort'] },
+      hecate: { name:'Imperial Blockade', pill:'Blockade', faction:'MCR', facts:{ 'Complement':'Star Destroyer picket', 'Orders':'Nothing in, nothing out', 'TIE screens':'Constant' }, blurb:'The Empire’s cordon around the battle stage. Run it fast or don’t run it at all.',
+        anns:['Imperial-class silhouette','Turbolaser batteries','Tractor beam projector','TIE fighter screens','Command tower'] },
+      l4yard: { name:'Kuat Drive Yards', pill:'Kuat', faction:'MCR', facts:{ 'Output':'Star Destroyers', 'Backlog':'Always', 'Union':'Imperialized' }, blurb:'The ring-forges of the Empire. Every wedge in the sky started here.',
+        anns:['Orbital forge ring','Destroyer keel — 60%','Heavy cranes','Imperial supply spine'] },
+      gate: { name:'Hyperspace Beacon', pill:'Beacon', faction:'UNK', facts:{ 'Type':'Ancient jump beacon', 'Route':'The Outer Rim run', 'Age':'Pre-Republic' }, blurb:'Older than the Republic, still counting jumps. Navicomputers trust it more than they trust people.',
+        anns:['Beacon superstructure',{t:'Jump aperture',warn:true},'Ø ~1,000 km','Route: the Rim run'] }
     }
   }
 };
@@ -1312,12 +1482,63 @@ function buildChaosShip(){
   return g;
 }
 
+function buildXWing(){
+  const g = new THREE.Group();
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0xd9dade, roughness: 0.55, metalness: 0.3 });
+  const redMat = new THREE.MeshStandardMaterial({ color: 0xc23b2a, roughness: 0.5, metalness: 0.2 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x2c3138, roughness: 0.7, metalness: 0.4 });
+  // fuselage, nose -Z
+  const fus = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 1.9, 8), hullMat);
+  fus.rotation.x = Math.PI/2;
+  g.add(fus);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.9, 8), hullMat);
+  nose.rotation.x = -Math.PI/2;
+  nose.position.z = -1.4;
+  g.add(nose);
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.55), darkMat);
+  canopy.position.set(0, 0.2, -0.25);
+  g.add(canopy);
+  const astro = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), new THREE.MeshStandardMaterial({ color: 0xe08a2b, roughness: 0.5 }));
+  astro.position.set(0, 0.22, 0.25);
+  g.add(astro);
+  // s-foils (X configuration) + wingtip cannons
+  g.userData.muzzles = [];
+  for(const sx of [-1, 1]){
+    for(const sy of [-1, 1]){
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.05, 0.55), hullMat);
+      wing.position.set(sx*0.72, sy*0.2, 0.55);
+      wing.rotation.z = sx * sy * 0.3;
+      g.add(wing);
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.056, 0.55), redMat);
+      stripe.position.set(sx*0.95, sy*0.2 + sx*sy*0.3*0.9, 0.55);
+      stripe.rotation.z = sx * sy * 0.3;
+      g.add(stripe);
+      const tipX = sx*1.38, tipY = sy*0.2 + sx*sy*0.3*1.3;
+      const cannon = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.9, 6), darkMat);
+      cannon.rotation.x = Math.PI/2;
+      cannon.position.set(tipX, tipY, 0.15);
+      g.add(cannon);
+      g.userData.muzzles.push(new THREE.Vector3(tipX, tipY, -0.35));
+      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.5, 8), darkMat);
+      eng.rotation.x = Math.PI/2;
+      eng.position.set(sx*0.35, sy*0.16, 0.85);
+      g.add(eng);
+      const engGlow = new THREE.Mesh(new THREE.CircleGeometry(0.08, 8), new THREE.MeshBasicMaterial({ color: 0xff9a9a }));
+      engGlow.position.set(sx*0.35, sy*0.16, 1.11);
+      g.add(engGlow);
+    }
+  }
+  attachPlume(g, 'rgba(255,150,140,1)', 'rgba(255,80,60,0.5)', 1.5);
+  return g;
+}
+
 const SHIPS = { expanse: roci };
 SHIPS.trek = buildTrekShip();
 SHIPS.neon = buildNeonShip();
 SHIPS.retro = buildRetroShip();
 SHIPS.chaos = buildChaosShip();
-['trek','neon','retro','chaos'].forEach(k => { SHIPS[k].visible = false; scene.add(SHIPS[k]); });
+SHIPS.wars = buildXWing();
+['trek','neon','retro','chaos','wars'].forEach(k => { SHIPS[k].visible = false; scene.add(SHIPS[k]); });
 let ship = SHIPS.expanse;
 
 /* ---------------------------------------------------------------------
@@ -1415,12 +1636,14 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   pointerNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
   pointerNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointerNDC, camera);
-  const hits = raycaster.intersectObjects([sunMesh, ...selectableRoots], true);
+  const hits = raycaster.intersectObjects([sunMesh, deathStar, ...selectableRoots], true);
   if(hits.length){
     let o = hits[0].object;
-    if(o === sunMesh){ selectSun(); return; }
-    while(o && !o.userData.body) o = o.parent;
-    if(o && o.userData.body) selectBody(o.userData.body);
+    while(o){
+      if(o === sunMesh || o === deathStar){ selectSun(); return; }
+      if(o.userData.body){ selectBody(o.userData.body); return; }
+      o = o.parent;
+    }
   }
 });
 
@@ -1742,7 +1965,42 @@ function buildInspectModel(key){
   const A = (t, x, y, z, warn) => anns.push({ t, p: new THREE.Vector3(x,y,z), warn });
   const planet = PLANETS.find(p => p.key === key);
 
-  if(key === 'sun'){
+  if(key === 'sun' && currentTheme === 'wars'){
+    // Death Star detail scan
+    radius = 4.2;
+    const hull = new THREE.Mesh(new THREE.SphereGeometry(3.2, 64, 48),
+      new THREE.MeshStandardMaterial({ map: makeDSTexture(1024,512), roughness: 0.85, metalness: 0.15 }));
+    g.add(hull);
+    const wallM = new THREE.MeshStandardMaterial({ color: 0x4a4e57, roughness: 0.8, metalness: 0.2 });
+    for(const y of [0.22, -0.22]){
+      const wallGeo = new THREE.TorusGeometry(3.27, 0.14, 8, 72);
+      wallGeo.rotateX(Math.PI/2);
+      const wall = new THREE.Mesh(wallGeo, wallM);
+      wall.position.y = y;
+      g.add(wall);
+    }
+    const dishDir = new THREE.Vector3(0.5, 0.62, 0.6).normalize();
+    const plate = new THREE.Mesh(new THREE.CircleGeometry(0.85, 32), new THREE.MeshStandardMaterial({ color: 0x4b4f58, roughness: 0.7, metalness: 0.3 }));
+    plate.position.copy(dishDir.clone().multiplyScalar(3.22));
+    plate.lookAt(dishDir.clone().multiplyScalar(10));
+    g.add(plate);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), new THREE.MeshBasicMaterial({ color: 0x7dffa0 }));
+    eye.position.copy(dishDir.clone().multiplyScalar(3.24));
+    g.add(eye);
+    const port = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffa030 }));
+    port.position.set(3.25, 0, 0);
+    g.add(port);
+    const portGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeGlowSprite('rgba(255,170,60,0.9)','rgba(255,120,30,0.35)',64), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
+    portGlow.position.set(3.25, 0, 0);
+    portGlow.scale.set(0.9, 0.9, 1);
+    g.add(portGlow);
+    update = (dt, t) => { portGlow.scale.setScalar(0.8 + Math.sin(t*4)*0.25); };
+    A('Superlaser dish', dishDir.x*4.1, dishDir.y*4.1, dishDir.z*4.1);
+    A('Equatorial trench — attack vector', 0, -1.2, 3.4, true);
+    A('Thermal exhaust port — 2 m', 3.7, 0.6, 0, true);
+    A('Turbolaser grid', -2.6, 2.2, -0.8);
+  }
+  else if(key === 'sun'){
     radius = 3.6;
     const core = new THREE.Mesh(new THREE.SphereGeometry(3.2, 64, 40), new THREE.MeshBasicMaterial({ map: makeSunTexture(1024,512) }));
     g.add(core);
@@ -2319,8 +2577,8 @@ let shipMode = false;
 let shipYaw = 0, shipPitch = 0;
 const shipVel = new THREE.Vector3();
 let chaseDist = 9;
-const keys = { fwd:false, back:false, left:false, right:false, boost:false, brake:false };
-const touchThrust = { burn:false, retro:false, brake:false };
+const keys = { fwd:false, back:false, left:false, right:false, boost:false, brake:false, fire:false };
+const touchThrust = { burn:false, retro:false, brake:false, fire:false };
 
 const ACCEL = 26;            // units/s²
 const MAX_SPEED = 48;        // cruise cap
@@ -2353,6 +2611,12 @@ function enterShipMode(){
   shipPitch = Math.asin(THREE.MathUtils.clamp(look.y, -1, 1));
   shipVel.set(0,0,0);
   ship.visible = true;
+  if(currentTheme === 'wars'){
+    // launch from the Rebel side, nose at the Death Star
+    ship.position.set(0, 4, 70);
+    shipYaw = 0; shipPitch = 0;
+  }
+  document.body.classList.add('flying');
 
   orbitControls.enabled = false;
   btnShip.classList.add('on');
@@ -2376,6 +2640,7 @@ function exitShipMode(){
   steerHint.style.display = 'none';
   document.getElementById('title').style.display = '';
   document.getElementById('themeTabs').style.display = '';
+  document.body.classList.remove('flying');
 }
 
 // keyboard
@@ -2385,7 +2650,9 @@ window.addEventListener('keydown', (e) => {
   else if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
   else if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
   else if(e.key === 'Shift') keys.boost = true;
-  else if(e.key === ' ') keys.brake = true;
+  else if(e.key === ' '){ if(currentTheme === 'wars') keys.fire = true; else keys.brake = true; }
+  else if(e.key === 'x' || e.key === 'X') keys.brake = true;
+  else if((e.key === 't' || e.key === 'T') && currentTheme === 'wars' && shipMode) fireTorpedo();
   else if(e.key === 'Escape'){ if(shipMode) exitShipMode(); else if(inspectOpen) resetView(); }
   else return;
   if(shipMode) e.preventDefault();
@@ -2396,7 +2663,8 @@ window.addEventListener('keyup', (e) => {
   else if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
   else if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
   else if(e.key === 'Shift') keys.boost = false;
-  else if(e.key === ' ') keys.brake = false;
+  else if(e.key === ' '){ keys.fire = false; keys.brake = false; }
+  else if(e.key === 'x' || e.key === 'X') keys.brake = false;
 });
 
 // touch thrust buttons (hold to fire)
@@ -2411,6 +2679,11 @@ function holdButton(el, prop){
 holdButton(document.getElementById('btnBurn'), 'burn');
 holdButton(document.getElementById('btnRetro'), 'retro');
 holdButton(document.getElementById('btnBrake'), 'brake');
+holdButton(document.getElementById('btnFire'), 'fire');
+document.getElementById('btnTorp').addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  if(currentTheme === 'wars' && shipMode) fireTorpedo();
+});
 
 // pointer steering + pinch camera zoom (ship mode)
 const activePointers = new Map();
@@ -2512,6 +2785,358 @@ function updateShip(dt){
 }
 
 /* ---------------------------------------------------------------------
+   DEATH STAR BATTLE — TIEs, Star Destroyers, lasers, torpedoes
+--------------------------------------------------------------------- */
+const warsGroup = new THREE.Group();
+warsGroup.visible = false;
+scene.add(warsGroup);
+
+const wars = {
+  ties: [], destroyers: [], pBolts: [], eBolts: [], puffs: [],
+  shield: 100, kills: 0, torps: 6, won: false, deaths: 0,
+  lastFire: 0, lastHitT: -99, fireball: null, fireT: 0, tieRespawnAt: [],
+  graceUntil: 0
+};
+const TIE_MAX = 6;
+const boltGeo = new THREE.BoxGeometry(0.09, 0.09, 1.7);
+const boltMatRed = new THREE.MeshBasicMaterial({ color: 0xff3b30 });
+const boltMatGreen = new THREE.MeshBasicMaterial({ color: 0x51ff4a });
+const boltMatTorp = new THREE.MeshBasicMaterial({ color: 0xffa030 });
+const puffTex = makeGlowSprite('rgba(255,190,90,1)','rgba(255,80,20,0.4)',64);
+const dmgEl = document.getElementById('dmg');
+const flashEl = document.getElementById('flash');
+const warsBanner = document.getElementById('warsBanner');
+const hudShield = document.getElementById('hudShield');
+const hudTorps = document.getElementById('hudTorps');
+const hudKills = document.getElementById('hudKills');
+const hudPort = document.getElementById('hudPort');
+
+function buildTIE(){
+  const g = new THREE.Group();
+  const dark = new THREE.MeshStandardMaterial({ color: 0x3c4148, roughness: 0.6, metalness: 0.5 });
+  const panelM = new THREE.MeshStandardMaterial({ color: 0x22252b, roughness: 0.7, metalness: 0.4 });
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 8), dark));
+  const win = new THREE.Mesh(new THREE.CircleGeometry(0.17, 8), new THREE.MeshBasicMaterial({ color: 0x0e0f12 }));
+  win.position.z = -0.39; win.rotation.y = Math.PI;
+  g.add(win);
+  for(const s of [-1, 1]){
+    const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.35, 6), dark);
+    strut.rotation.z = Math.PI/2; strut.position.x = s*0.5;
+    g.add(strut);
+    const panel = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.68, 0.04, 6), panelM);
+    panel.rotation.z = Math.PI/2; panel.position.x = s*0.72;
+    g.add(panel);
+  }
+  return g;
+}
+
+function buildDestroyer(){
+  const g = new THREE.Group();
+  const hullM = new THREE.MeshStandardMaterial({ color: 0x8d939c, roughness: 0.6, metalness: 0.4 });
+  const wedgeGeo = new THREE.ConeGeometry(3, 12, 3);
+  wedgeGeo.rotateX(-Math.PI/2);          // nose to -Z
+  const wedge = new THREE.Mesh(wedgeGeo, hullM);
+  wedge.scale.y = 0.28;
+  g.add(wedge);
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.55, 1.2), hullM);
+  bridge.position.set(0, 0.75, 3.6);
+  g.add(bridge);
+  for(const s of [-1, 1]){
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), hullM);
+    dome.position.set(s*0.75, 1.15, 3.6);
+    g.add(dome);
+  }
+  for(let i=0;i<3;i++){
+    const engGlow = new THREE.Mesh(new THREE.CircleGeometry(0.28, 8), new THREE.MeshBasicMaterial({ color: 0x8ab8ff }));
+    engGlow.position.set((i-1)*0.9, 0, 5.98);
+    g.add(engGlow);
+  }
+  return g;
+}
+
+function spawnTIE(nearPos){
+  const base = nearPos || (shipMode ? ship.position : new THREE.Vector3(0, 4, 70));
+  let pos;
+  do {
+    const dir = new THREE.Vector3(rnd(-1,1), rnd(-0.4,0.4), rnd(-1,1)).normalize();
+    pos = base.clone().addScaledVector(dir, rnd(28, 48));
+  } while(pos.length() < DS_R + 4);
+  const g = buildTIE();
+  g.position.copy(pos);
+  warsGroup.add(g);
+  wars.ties.push({ g, vel: new THREE.Vector3(), cd: clock.getElapsedTime() + rnd(1, 3), evadeUntil: 0 });
+}
+
+function spawnDestroyer(x, y, z){
+  const g = buildDestroyer();
+  g.position.set(x, y, z);
+  g.lookAt(0, y*0.5, 0);
+  warsGroup.add(g);
+  wars.destroyers.push({ g, hp: 50, cd: 0 });
+}
+
+function puffAt(pos, scale, life){
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
+  s.position.copy(pos);
+  s.scale.set(0.2, 0.2, 1);
+  warsGroup.add(s);
+  wars.puffs.push({ s, t: 0, life: life || 0.55, max: scale || 3 });
+}
+
+function spawnBolt(pos, dir, speed, mat, opts){
+  const m = new THREE.Mesh(boltGeo, mat);
+  m.position.copy(pos);
+  const vel = dir.clone().multiplyScalar(speed);
+  if(opts && opts.inherit) vel.add(shipVel);
+  m.lookAt(pos.clone().add(vel));
+  warsGroup.add(m);
+  const rec = { m, vel, life: (opts && opts.life) || 1.6, friendly: !!(opts && opts.friendly), torp: !!(opts && opts.torp) };
+  (rec.friendly ? wars.pBolts : wars.eBolts).push(rec);
+}
+
+let xwingMuzzleFlip = false;
+function firePlayerLasers(t){
+  if(t - wars.lastFire < 0.14) return;
+  wars.lastFire = t;
+  const fwd = new THREE.Vector3(0,0,-1).applyEuler(ship.rotation);
+  const muzzles = ship.userData.muzzles || [new THREE.Vector3(0.5,0,0), new THREE.Vector3(-0.5,0,0)];
+  xwingMuzzleFlip = !xwingMuzzleFlip;
+  const pair = xwingMuzzleFlip ? muzzles.slice(0,2) : muzzles.slice(2,4);
+  (pair.length ? pair : muzzles).forEach(mz => {
+    const p = mz.clone().applyEuler(ship.rotation).add(ship.position);
+    spawnBolt(p, fwd, 240, boltMatRed, { friendly: true, inherit: true, life: 1.5 });
+  });
+}
+
+function fireTorpedo(){
+  if(wars.torps <= 0 || wars.won) return;
+  wars.torps--;
+  const fwd = new THREE.Vector3(0,0,-1).applyEuler(ship.rotation);
+  for(const sx of [-0.25, 0.25]){
+    const off = new THREE.Vector3(sx, -0.15, -0.5).applyEuler(ship.rotation);
+    spawnBolt(ship.position.clone().add(off), fwd, 110, boltMatTorp, { friendly: true, torp: true, inherit: true, life: 5 });
+  }
+}
+
+function warsWin(){
+  if(wars.won) return;
+  wars.won = true;
+  flashEl.style.opacity = '1';
+  setTimeout(() => flashEl.style.opacity = '0', 300);
+  const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffcc66, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false }));
+  scene.add(m);
+  wars.fireball = { m };
+  wars.fireT = 0;
+  for(let i=0;i<24;i++){
+    const dir = new THREE.Vector3(rnd(-1,1), rnd(-1,1), rnd(-1,1)).normalize();
+    puffAt(dir.multiplyScalar(rnd(2, DS_R)), rnd(4, 10), rnd(0.8, 1.6));
+  }
+}
+
+function resetBattle(){
+  [...wars.pBolts, ...wars.eBolts].forEach(b => warsGroup.remove(b.m));
+  wars.pBolts.length = 0; wars.eBolts.length = 0;
+  wars.ties.forEach(t => warsGroup.remove(t.g)); wars.ties.length = 0;
+  wars.destroyers.forEach(d => warsGroup.remove(d.g)); wars.destroyers.length = 0;
+  wars.puffs.forEach(p => warsGroup.remove(p.s)); wars.puffs.length = 0;
+  if(wars.fireball){ scene.remove(wars.fireball.m); wars.fireball = null; }
+  wars.tieRespawnAt.length = 0;
+  wars.shield = 100; wars.kills = 0; wars.torps = 6; wars.won = false;
+  wars.graceUntil = clock.getElapsedTime() + 5;
+  deathStar.visible = currentTheme === 'wars';
+  warsBanner.style.display = 'none';
+  for(let i=0;i<TIE_MAX;i++) spawnTIE();
+  spawnDestroyer(38, 8, 46);
+  spawnDestroyer(-42, 10, 40);
+}
+document.getElementById('warsReset').addEventListener('click', resetBattle);
+
+const _wv = new THREE.Vector3();
+function warsUpdate(dt){
+  if(!warsGroup.visible) return;
+  const t = clock.getElapsedTime();
+
+  // victory fireball
+  if(wars.fireball){
+    wars.fireT += dt;
+    const f = wars.fireball.m;
+    const s = 1 + wars.fireT * 22;
+    f.scale.set(s, s, s);
+    f.material.opacity = Math.max(0, 1 - wars.fireT / 1.6);
+    if(wars.fireT > 0.9) deathStar.visible = false;
+    if(wars.fireT > 1.7){
+      scene.remove(f);
+      wars.fireball = null;
+      warsBanner.style.display = 'block';
+    }
+  }
+
+  // port glow pulse
+  dsPortGlow.scale.setScalar(2.2 + Math.sin(t*4) * 0.7);
+
+  // player firing
+  if(shipMode && !wars.won && (keys.fire || touchThrust.fire)) firePlayerLasers(t);
+
+  // TIE respawns
+  for(let i = wars.tieRespawnAt.length - 1; i >= 0; i--){
+    if(t >= wars.tieRespawnAt[i]){
+      wars.tieRespawnAt.splice(i, 1);
+      if(!wars.won && wars.ties.length < TIE_MAX) spawnTIE();
+    }
+  }
+
+  // TIE AI
+  wars.ties.forEach((tie, ti) => {
+    const P = tie.g.position;
+    const target = shipMode ? ship.position : new THREE.Vector3(0, 4, 70);
+    const dist = P.distanceTo(target);
+    let desired;
+    if(t < tie.evadeUntil){
+      desired = _wv.copy(P).sub(target).normalize();
+    } else {
+      desired = _wv.copy(target).sub(P).normalize();
+      desired.x += Math.sin(t*1.3 + ti*2.1) * 0.35;
+      desired.y += Math.cos(t*1.7 + ti*1.4) * 0.25;
+      desired.normalize();
+      if(dist < 7) tie.evadeUntil = t + 1.4;
+    }
+    const speed = 26 + (ti % 3) * 4;
+    tie.vel.lerp(desired.multiplyScalar(speed), Math.min(1, 2.2*dt));
+    P.addScaledVector(tie.vel, dt);
+    if(P.length() < DS_R + 2) P.setLength(DS_R + 2);   // don't fly into the Death Star
+    tie.g.lookAt(P.clone().add(tie.vel));
+    // fire at the player
+    if(shipMode && !wars.won && t > wars.graceUntil && dist < 45 && t > tie.cd){
+      tie.cd = t + rnd(2.5, 5.0);
+      const lead = ship.position.clone().addScaledVector(shipVel, dist / 120 * 0.6);
+      const dir = lead.sub(P).normalize();
+      dir.x += rnd(-0.12, 0.12); dir.y += rnd(-0.12, 0.12);
+      spawnBolt(P.clone(), dir.normalize(), 120, boltMatGreen, { life: 2.2 });
+    }
+  });
+
+  // Star Destroyer turbolasers
+  wars.destroyers.forEach(d => {
+    if(shipMode && !wars.won && t > wars.graceUntil && t > d.cd && d.g.position.distanceTo(ship.position) < 150){
+      d.cd = t + rnd(2.5, 4.0);
+      const from = d.g.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+      const dir = ship.position.clone().sub(from).normalize();
+      dir.x += rnd(-0.1, 0.1); dir.y += rnd(-0.1, 0.1); dir.z += rnd(-0.1, 0.1);
+      spawnBolt(from, dir.normalize(), 110, boltMatGreen, { life: 2.6 });
+    }
+  });
+
+  // player bolts: move + collide
+  const portWorld = PORT_POS;
+  for(let i = wars.pBolts.length - 1; i >= 0; i--){
+    const b = wars.pBolts[i];
+    b.m.position.addScaledVector(b.vel, dt);
+    b.life -= dt;
+    let dead = b.life <= 0;
+    if(!dead){
+      // torpedo → exhaust port
+      if(b.torp && deathStar.visible && b.m.position.distanceTo(portWorld) < 2.3){
+        warsWin();
+        puffAt(portWorld.clone(), 5, 0.8);
+        dead = true;
+      }
+      // hit the Death Star hull
+      else if(deathStar.visible && b.m.position.length() < DS_R + 0.4){
+        puffAt(b.m.position.clone().setLength(DS_R + 0.3), b.torp ? 3.4 : 1.2, 0.4);
+        dead = true;
+      }
+      // hit a TIE
+      if(!dead){
+        for(let j = wars.ties.length - 1; j >= 0; j--){
+          if(b.m.position.distanceTo(wars.ties[j].g.position) < 1.5){
+            puffAt(wars.ties[j].g.position, 2.6, 0.5);
+            warsGroup.remove(wars.ties[j].g);
+            wars.ties.splice(j, 1);
+            wars.kills++;
+            wars.tieRespawnAt.push(t + rnd(3, 6));
+            dead = true;
+            break;
+          }
+        }
+      }
+      // hit a destroyer
+      if(!dead){
+        for(let j = wars.destroyers.length - 1; j >= 0; j--){
+          const d = wars.destroyers[j];
+          if(b.m.position.distanceTo(d.g.position) < 5.2){
+            d.hp -= b.torp ? 12 : 1;
+            puffAt(b.m.position.clone(), b.torp ? 3 : 1, 0.35);
+            if(d.hp <= 0){
+              for(let k=0;k<8;k++) puffAt(d.g.position.clone().add(new THREE.Vector3(rnd(-4,4), rnd(-1,1), rnd(-4,4))), rnd(3,7), rnd(0.5,1));
+              warsGroup.remove(d.g);
+              wars.destroyers.splice(j, 1);
+              wars.kills += 5;
+            }
+            dead = true;
+            break;
+          }
+        }
+      }
+    }
+    if(dead){ warsGroup.remove(b.m); wars.pBolts.splice(i, 1); }
+  }
+
+  // enemy bolts: move + hit player
+  for(let i = wars.eBolts.length - 1; i >= 0; i--){
+    const b = wars.eBolts[i];
+    b.m.position.addScaledVector(b.vel, dt);
+    b.life -= dt;
+    let dead = b.life <= 0;
+    if(!dead && shipMode && b.m.position.distanceTo(ship.position) < 1.6){
+      wars.shield -= 5;
+      wars.lastHitT = t;
+      dmgEl.style.opacity = '0.85';
+      puffAt(ship.position.clone(), 1.6, 0.3);
+      dead = true;
+      if(wars.shield <= 0){
+        // ship lost — back to the fleet
+        wars.deaths++;
+        puffAt(ship.position.clone(), 5, 0.9);
+        ship.position.set(0, 4, 70);
+        shipVel.set(0, 0, 0);
+        shipYaw = 0; shipPitch = 0;
+        wars.shield = 100;
+        wars.graceUntil = t + 4;
+      }
+    }
+    if(dead){ warsGroup.remove(b.m); wars.eBolts.splice(i, 1); }
+  }
+
+  // damage vignette fade + shield regen
+  const dmgOp = parseFloat(dmgEl.style.opacity || '0');
+  if(dmgOp > 0) dmgEl.style.opacity = String(Math.max(0, dmgOp - 2.4*dt));
+  if(t - wars.lastHitT > 4) wars.shield = Math.min(100, wars.shield + 5*dt);
+
+  // explosion puffs
+  for(let i = wars.puffs.length - 1; i >= 0; i--){
+    const p = wars.puffs[i];
+    p.t += dt;
+    const k = p.t / p.life;
+    const sc = 0.2 + p.max * k;
+    p.s.scale.set(sc, sc, 1);
+    p.s.material.opacity = Math.max(0, 1 - k);
+    if(k >= 1){ warsGroup.remove(p.s); wars.puffs.splice(i, 1); }
+  }
+
+  // HUD
+  if(shipMode){
+    hudShield.textContent = Math.max(0, Math.round(wars.shield)) + '%';
+    hudShield.style.color = wars.shield < 30 ? '#ff5040' : '';
+    hudTorps.textContent = String(wars.torps);
+    hudKills.textContent = String(wars.kills);
+    const pd = ship.position.distanceTo(portWorld);
+    hudPort.textContent = wars.won ? 'DESTROYED' : (pd * 12).toFixed(0) + ' km';
+    hudPort.style.color = (!wars.won && pd < 25) ? '#ffd54a' : '';
+  }
+}
+
+/* ---------------------------------------------------------------------
    THEME SWITCHING
 --------------------------------------------------------------------- */
 function applyTheme(id){
@@ -2543,6 +3168,17 @@ function applyTheme(id){
   });
   nebulaGroup.visible = !!T.nebulas;
   rainbowStars.visible = !!T.nebulas;
+
+  const isWars = id === 'wars';
+  sunGroup.visible = !isWars;
+  deathStar.visible = isWars;
+  warsLight.visible = isWars;
+  warsGroup.visible = isWars;
+  if(isWars) resetBattle();
+  else warsBanner.style.display = 'none';
+  steerHint.innerHTML = isWars
+    ? 'Drag: steer<br>↑/W burn · SPACE: fire lasers<br>T: torpedo · X: flip&amp;burn<br>Hit the glowing exhaust port!'
+    : 'Drag: steer<br>↑/W burn · ↓/S retro<br>Shift: epstein · Space: flip&amp;burn<br>Wheel/pinch: camera';
 
   const oldShip = ship;
   ship = SHIPS[id] || SHIPS.expanse;
@@ -2605,6 +3241,7 @@ function animate(){
     else orbitControls.update();
   }
 
+  warsUpdate(dt);
   updateLabels();
   renderer.render(scene, camera);
   renderInspect(dt);
