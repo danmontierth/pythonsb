@@ -54,8 +54,33 @@
   #title b { font-size: 15px; letter-spacing: .22em; color: var(--teal); }
   #title div { opacity: .6; font-size: 10px; margin-top: 2px; letter-spacing: .14em; text-transform: uppercase; }
 
+  #themeTabs {
+    position: fixed; z-index: 11;
+    top: calc(max(10px, env(safe-area-inset-top)) + 66px); left: 12px;
+    display: flex; gap: 3px; padding: 5px 6px; max-width: calc(100vw - 24px);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  #themeTabs::-webkit-scrollbar { display: none; }
+  #themeTabs button {
+    flex: 0 0 auto; border: 1px solid transparent; background: transparent;
+    color: var(--ink); opacity: .6; font-size: 10px; letter-spacing: .12em;
+    padding: 6px 9px; cursor: pointer; text-transform: uppercase;
+  }
+  #themeTabs button.on {
+    opacity: 1; color: var(--teal); border-color: var(--teal-dim);
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* ---- theme skins ---- */
+  body.theme-trek { --teal:#f5a623; --teal-dim:rgba(245,166,35,.4); --un:#5c8fe6; --mcr:#c23b2a; --opa:#3fa66b; --ink:#f2e6d8; --panel:rgba(22,14,30,.8); }
+  body.theme-trek .cut { clip-path: none; border-radius: 16px; }
+  body.theme-neon { --teal:#ff2d95; --teal-dim:rgba(255,45,149,.45); --un:#2de1ff; --mcr:#b026ff; --opa:#b6ff2d; --ink:#f2e9ff; --panel:rgba(16,4,26,.82); }
+  body.theme-retro { --teal:#ffb13b; --teal-dim:rgba(255,177,59,.45); --un:#ff6a4d; --mcr:#d6483c; --opa:#6ac8b8; --ink:#fff2df; --panel:rgba(30,16,8,.8); }
+  body.theme-retro .cut { clip-path: none; border-radius: 4px; border-width: 2px; }
+  body.theme-chaos { --teal:#3bffec; --teal-dim:rgba(59,255,236,.4); --un:#ffe100; --mcr:#ff3bd4; --opa:#7cff00; --ink:#f4ffff; --panel:rgba(20,4,30,.78); }
+
   #hint {
-    top: calc(max(10px, env(safe-area-inset-top)) + 64px); right: 12px; text-align: right;
+    top: calc(max(10px, env(safe-area-inset-top)) + 118px); right: 12px; text-align: right;
     max-width: 46vw; opacity: .6; font-size: 10px; line-height: 1.5;
     transition: opacity .8s ease; padding: 8px 12px; letter-spacing: .08em; text-transform: uppercase;
   }
@@ -202,8 +227,16 @@
 </div>
 
 <div class="hud glass cut" id="title">
-  <b>SOL SYSTEM</b>
-  <div>The Expanse · Tactical Nav Overlay</div>
+  <b id="titleMain">SOL SYSTEM</b>
+  <div id="titleSub">The Expanse · Tactical Nav Overlay</div>
+</div>
+
+<div id="themeTabs" class="glass cut">
+  <button data-theme="expanse" class="on">Expanse</button>
+  <button data-theme="trek">Trek</button>
+  <button data-theme="neon">Neon</button>
+  <button data-theme="retro">Retro</button>
+  <button data-theme="chaos">Chaos</button>
 </div>
 
 <div class="hud glass cut" id="hint">
@@ -211,7 +244,7 @@
 </div>
 
 <div class="hud glass cut" id="shipHUD">
-  <div class="roci">▮ ROCINANTE — MCRN CORVETTE (LEGITIMATE SALVAGE)</div>
+  <div class="roci" id="hudShip">▮ ROCINANTE — MCRN CORVETTE (LEGITIMATE SALVAGE)</div>
   <div class="row"><span class="k">Vel</span><span class="v mono" id="hudVel">0 km/s</span></div>
   <div class="row"><span class="k">Drive</span><span class="v mono" id="hudThr">IDLE</span></div>
   <div class="row"><span class="k">Nearest</span><span class="v mono" id="hudNear">—</span></div>
@@ -552,6 +585,202 @@ const FACTION_NAMES = {
 };
 
 /* ---------------------------------------------------------------------
+   THEMES — each tab reskins the same system: palette, lore, ship, sky.
+   Expanse lore lives on the body objects; other themes override here.
+--------------------------------------------------------------------- */
+const THEMES = {
+  expanse: {
+    title: 'SOL SYSTEM', sub: 'The Expanse · Tactical Nav Overlay',
+    shipHud: '▮ ROCINANTE — MCRN CORVETTE (LEGITIMATE SALVAGE)',
+    orbitColor: 0x3d6f7a, sunTint: 0xffffff,
+    factionNames: FACTION_NAMES,
+    bodies: {}
+  },
+
+  trek: {
+    title: 'SOL · SECTOR 001', sub: 'Starfleet Operations Overlay',
+    shipHud: '▮ USS ODYSSEY NCC-71832 — FEDERATION CRUISER',
+    orbitColor: 0xcc8833, sunTint: 0xffffff,
+    factionNames: { UN:'United Federation of Planets', MCR:'Utopia Planitia Command', OPA:'Frontier Outposts', SOL:'Sector 001', UNK:'Unexplained Phenomena' },
+    bodies: {
+      sun: { facts:{ 'Sector':'001 — heart of the Federation', 'Class':'G2V main sequence', 'Advisory':'Warp interdiction inside 0.2 AU' },
+        blurb:'Every cadet’s first sunrise from orbit. Sector 001 starts here.',
+        anns:['Photosphere — class G2V','Solar observatory grid','Sector 001 primary'] },
+      mercury: { facts:{ 'Facility':'Automated solar observatories', 'Crew':'None — remote ops' }, blurb:'Too hot for people; perfect for instruments.',
+        anns:['Solar observatory arrays','Sun-scorched survey zone'] },
+      venus: { facts:{ 'Project':'Terraforming test bed', 'Status':'Atmospheric processors staged', 'Oversight':'Federation Science Council' },
+        blurb:'One day, a second Earth. Today, a chemistry lesson with weather.',
+        anns:['Atmospheric processor site','Runaway greenhouse — pre-terraform','Science Council picket'] },
+      earth: { name:'Earth — Sector 001', pill:'Earth', facts:{ 'Allegiance':'United Federation of Planets', 'Landmark':'Starfleet HQ & Academy — San Francisco', 'Government':'Federation Council — Paris', 'Defense':'Home Fleet & Spacedock' },
+        blurb:'Paradise, mostly. Poverty and war are museum exhibits; the fleet is built for exploration first.',
+        anns:['Starfleet Headquarters','Academy — San Francisco','Federation Council — Paris','Tycho City shipyards — Luna'] },
+      mars: { faction:'UN', facts:{ 'Facility':'Utopia Planitia Fleet Yards', 'Built here':'Galaxy-class explorers', 'Surface':'Terraformed dome settlements', 'Defense':'Orbital drydocks' },
+        blurb:'The Federation’s forge. Half the fleet’s keels were laid in Mars orbit.',
+        anns:['Utopia Planitia Fleet Yards','Dome settlements','Terraforming grid','Polar water works'] },
+      jupiter: { facts:{ 'Facility':'Jupiter Station', 'Focus':'Holo-engineering & medicine', 'Traffic':'Fleet supply lanes' },
+        blurb:'Research station, supply hub, and the best simulated beaches in the system.',
+        anns:['Great Red Spot','Radiation belt advisory','Ganymede supply depot'] },
+      saturn: { facts:{ 'Facility':'Academy flight range', 'Exercise':'Titan atmosphere runs', 'Note':'Cadet proving grounds' },
+        blurb:'If you can thread the rings at full impulse, you can fly anything.',
+        anns:['Cassini Division','Ring-skimming flight range','Titan cadet circuit'] },
+      uranus: { facts:{ 'Outpost':'Deep-range listening post', 'Status':'Quiet, mostly' }, blurb:'Where ensigns learn patience.',
+        anns:['97.8° axial roll','Listening post relay','Epsilon ring survey'] },
+      neptune: { facts:{ 'Role':'Last stop before deep space', 'Traffic':'Long-range probe launches' }, blurb:'The doorstep of the unknown.',
+        anns:['Outer-system relay','Great Dark Spot','Probe launch corridor'] },
+      ceres: { name:'Ceres Depot', pill:'Ceres', facts:{ 'Role':'Deuterium & supply depot', 'Operator':'Federation logistics', 'Traffic':'Freighter staging' },
+        blurb:'Unglamorous and indispensable: the fuel stop for the whole sector.',
+        anns:['Docking spindle','Deuterium tank farm','Cargo tiers','Spin-gravity quarter'] },
+      eros: { name:'Anomaly E-40', pill:'E-40', facts:{ 'Status':'QUARANTINE — subspace rift', 'Hazard':'Sensor returns unreliable', 'Order':'Maintain 10,000 km standoff' },
+        blurb:'Scans say the rock is empty. Scans also say the rock is full. Starfleet Science is very excited; everyone else keeps their distance.',
+        anns:[{t:'Archive scan — pre-event'},{t:'Subspace rift bloom',warn:true},{t:'Sensor ghost returns',warn:true},{t:'Thermal anomaly',warn:true},{t:'Missing survey team',warn:true}] },
+      tycho: { name:'Tycho Fleet Yards', pill:'Tycho', facts:{ 'Role':'Frontier shipyard', 'Under construction':'Constitution-class refit', 'Berths':'Deep-dock gantry' },
+        blurb:'Out past the shipping lanes, the yards run day and night — the frontier always needs one more hull.',
+        anns:['Construction sphere','Constitution-class refit frame','Habitat ring — 0.5 g','Shuttle berth'] },
+      hecate: { name:'Utopia Planitia Drydock', pill:'Drydock', faction:'UN', facts:{ 'Class':'Orbital drydock & fleet tender', 'Complement':'Workbees & tugs', 'Output':'Explorer-class hulls' },
+        blurb:'A cathedral of scaffolding over the red planet, ribs of starships catching the sun.',
+        anns:['Fleet tender — 500 m','Structural spine','Point-defense grid (defensive)','Torpedo magazine','Impulse test stand'] },
+      l4yard: { name:'Earth Spacedock Annex', pill:'Spacedock', facts:{ 'Class':'Fleet yard', 'Note':'Doors sized for a Galaxy-class', 'Traffic':'Constant' },
+        blurb:'The mushroom in the sky. Every great five-year mission starts with a tow out of these doors.',
+        anns:['Drydock frame','Explorer hull — 60% complete','Fabrication cranes','Fleet logistics spine'] },
+      gate: { name:'The Wormhole', pill:'Wormhole', facts:{ 'Type':'Stable wormhole', 'Locals call it':'The Celestial Temple', 'Advisory':'Non-linear time inside' },
+        blurb:'A door to the other side of the galaxy that opens like a flower. The Prophets don’t take appointments.',
+        anns:[{t:'Verteron node lattice'},{t:'Aperture — dormant',warn:true},{t:'Ø ~1,000 km'},{t:'Far side: 70,000 light-years',warn:true}] }
+    }
+  },
+
+  neon: {
+    title: 'SOL://GRID', sub: 'Night City Orbital · pirate uplink',
+    shipHud: '▮ RAZORWING — SMUGGLER DART (STOLEN, PROBABLY)',
+    orbitColor: 0xff2d95, sunTint: 0xffd8ec, sunGlowTint: 0xff9ad0,
+    factionNames: { UN:'The Combine — MegaCorp Alliance', MCR:'Red Grid Militia', OPA:'The Drift — Free Haulers', SOL:'Sol', UNK:'The Glitch' },
+    bodies: {
+      sun: { name:'The Furnace', facts:{ 'Output':'Sold by the megawatt', 'Owner':'Legally disputed', 'Uptime':'4.6 billion years' }, blurb:'Even sunlight has a subscription plan out here.' },
+      mercury: { name:'Smelter', facts:{ 'Role':'Automated foundries', 'Shade':'None available' }, blurb:'Robots pour alloys nobody has names for yet.' },
+      venus: { name:'The Veil', facts:{ 'Status':'Cloud casinos — abandoned', 'Weather':'Acid rain, literal' }, blurb:'The house always won, then the house dissolved.' },
+      earth: { name:'Blue Rock', facts:{ 'Owner':'The Combine', 'Population':'Stacked arcologies', 'Skyline':'Neon below, smog above' }, blurb:'Forty billion people and every one of them owes the company store.' },
+      mars: { name:'Red Grid', facts:{ 'Run by':'Militia co-ops', 'Export':'Chips & munitions', 'Firmware':'Hand-rolled' }, blurb:'They de-corporatized the whole planet. It mostly worked.' },
+      jupiter: { name:'The Bank', facts:{ 'Role':'Helium-3 futures', 'Security':'Kill-sats on retainer' }, blurb:'The biggest thing in the system, and somehow still over-leveraged.' },
+      saturn: { name:'The Halo', facts:{ 'Scene':'Ring-ice rave barges', 'BPM':'170' }, blurb:'Ice miners by day. Ice miners by night too, but with lasers.' },
+      uranus: { name:'Coldside', facts:{ 'Role':'Server farms', 'Cooling':'Free' }, blurb:'Your data is here. Everyone’s data is here.' },
+      neptune: { name:'Last Light', facts:{ 'Role':'Smuggler rendezvous', 'Cams':'Zero' }, blurb:'Where deals close and transponders take a nap.' },
+      ceres: { name:'Datahaven K7', pill:'K7', facts:{ 'Role':'Off-grid data haven', 'Law':'None. Bring credits.', 'Latency':'Worth it' }, blurb:'The rock that remembers everything the corps deleted.' },
+      eros: { name:'Blackout Rock', pill:'Blackout', facts:{ 'Status':'Haunted server farm', 'Advisory':'The signals answer back', 'Last ping':'Refused' }, blurb:'Someone uploaded something they shouldn’t have. Now the rock glows and the rock talks.' },
+      tycho: { name:'The Foundry', pill:'Foundry', facts:{ 'Role':'Chop-shop shipyard', 'Motto':'No questions', 'Payment':'Up front' }, blurb:'Bring a wreck, leave with a legend. Serial numbers filed off free of charge.' },
+      hecate: { name:'Kill-Sat Array', pill:'Kill-Sat', facts:{ 'Class':'Orbital deterrent', 'Status':'Armed', 'Warranty':'Voided' }, blurb:'Red Grid’s insurance policy. Premiums are measured in megatons.' },
+      l4yard: { name:'Factory 9', pill:'Factory 9', facts:{ 'Role':'Corp assembly line', 'Shift':'24/7', 'Union':'Suppressed' }, blurb:'The Combine prints hulls like currency. Both are overvalued.' },
+      gate: { name:'The Glitch', pill:'Glitch', facts:{ 'Type':'Hole in the render', 'Advisory':'Do not debug', 'Draw distance':'∞' }, blurb:'One day the sky segfaulted and never quite recovered. Streamers love it.' }
+    }
+  },
+
+  retro: {
+    title: 'SOLAR SYSTEM!', sub: 'Amazing tales of tomorrow · est. 1958',
+    shipHud: '▮ THE VALIANT — CHROME ROCKET OF TOMORROW',
+    orbitColor: 0x7fb89a, sunTint: 0xffe0b0, sunGlowTint: 0xffd090,
+    factionNames: { UN:'United Terra', MCR:'The Martian Legion', OPA:'Asteroid Pioneers', SOL:'Old Sol', UNK:'The Great Unknown' },
+    bodies: {
+      sun: { name:'Old Sol', facts:{ 'Type':'Friendly neighborhood star', 'Rating':'5 stars' }, blurb:'Powering tomorrow, today!' },
+      mercury: { name:'Planet Mercury', facts:{ 'Claimed':'Terra Survey, 1958', 'Souvenirs':'Melted' }, blurb:'First rock from the sun — bring a hat!' },
+      venus: { name:'Planet Venus', facts:{ 'Rumor':'Jungles beneath the clouds!', 'Confirmed':'Not yet' }, blurb:'Scientists say maybe! Adventure says definitely!' },
+      earth: { name:'Terra', facts:{ 'Capital':'Capital City', 'Pride':'The World’s Fair space elevator', 'Fleet':'The Rocket Patrol' }, blurb:'The blue jewel of the space age — chrome towers, moving sidewalks, and a rocket in every garage.' },
+      mars: { name:'The Red Frontier', facts:{ 'Garrison':'The Martian Legion', 'Export':'Canal water (allegedly)', 'Dueling':'Legal' }, blurb:'Red dust, proud colonists, and the finest fighting force off Terra!' },
+      jupiter: { name:'King Jupiter', facts:{ 'Warning':'Storms of the century, every century' }, blurb:'The giant of the spaceways!' },
+      saturn: { name:'The Ringed Wonder', facts:{ 'Attraction':'Honeymoon ring cruises', 'Book early':'Yes' }, blurb:'See the rings by rocketliner — meals included!' },
+      uranus: { name:'The Tilted One', facts:{ 'Angle':'Jaunty' }, blurb:'Astronomers baffled! Tourists delighted!' },
+      neptune: { name:'The Deep Blue', facts:{ 'Distance':'Very' }, blurb:'The last lighthouse before the stars.' },
+      ceres: { name:'Asteroid City', pill:'Ast. City', facts:{ 'Role':'Boomtown of the Belt', 'Saloons':'47', 'Sheriff':'One (tired)' }, blurb:'Strike it rich in the Belt! Claims filed daily; oxygen sold separately.' },
+      eros: { name:'The Haunted Rock', pill:'Haunted!', facts:{ 'Legend':'They heard whispers…', 'Insurance':'Void', 'Verdict':'Spooky' }, blurb:'Prospectors won’t land there for all the platinum on Pallas. The glow, they say, follows you home.' },
+      tycho: { name:'Rocket Works No. 7', pill:'Rocket Wks', facts:{ 'Role':'Rocket assembly', 'Output':'A rocket a week!', 'Rivets':'Millions' }, blurb:'Where tomorrow’s rockets are riveted today by the finest crews in the Belt!' },
+      hecate: { name:'Fort Ares', pill:'Fort Ares', facts:{ 'Class':'Battle platform', 'Motto':'Peace through chrome', 'Band':'Excellent' }, blurb:'The Legion’s pride: a fortress in the Martian sky, polished to a mirror shine.' },
+      l4yard: { name:'Station Liberty', pill:'Liberty', facts:{ 'Class':'Orbital drydock', 'Flag':'Terra', 'Gift shop':'Yes' }, blurb:'Terra’s gateway to the stars — now with observation deck!' },
+      gate: { name:'The Cosmic Doorway', pill:'Doorway', facts:{ 'Type':'Beyond science!', 'Discovered':'Last Tuesday', 'Committee':'Forming' }, blurb:'What lies beyond the Cosmic Doorway? Tune in next week!' }
+    }
+  },
+
+  chaos: {
+    title: 'THE CRAZYVERSE', sub: 'Sol system, but unhinged',
+    shipHud: '▮ THE PICKLE — INTERDIMENSIONAL SAUCER (GENTLY USED)',
+    orbitRainbow: true, sunTint: 0xd8b8ff, sunGlowTint: 0xc8a0ff, nebulas: true,
+    factionNames: { UN:'The Blue Marble Fan Club', MCR:'Rust Enthusiasts Local 4', OPA:'Snack Rock Syndicate', SOL:'The Big Lamp', UNK:'??? (Don’t Ask)' },
+    bodies: {
+      sun: { name:'The Big Lamp', facts:{ 'Wattage':'Yes', 'Warranty':'Expired 4.6 billion years ago', 'Off switch':'Missing' }, blurb:'Do not look directly at the lamp. Do not look indirectly at the lamp.',
+        anns:['Extremely hot part','Slightly hotter part','99.86% of the blame'] },
+      mercury: { name:'Toasty', facts:{ 'Status':'Crispy', 'Shade':'Sold out' }, blurb:'It’s fine. Everything’s fine. It’s just very, very toasty.',
+        anns:['Sunscreen testing zone','Regolith, but spicy'] },
+      venus: { name:'Spicy Cloud', facts:{ 'Weather':'Yes, all of it', 'Air quality':'Do not' }, blurb:'A planet-sized hot sauce packet with opinions.',
+        anns:['Acid rave layer','Extremely rude greenhouse','Do-not-lick advisory'] },
+      earth: { name:'The Blue Marble', facts:{ 'Population':'Too many opinions', 'Known for':'Snacks, drama', 'Status':'Mostly harmless' }, blurb:'Original flavor. Still the best marble, according to marbles living on it.',
+        anns:['Snack production zone','Opinion superfund site','Ocean (wet)','Moon (cheese-adjacent)'] },
+      mars: { name:'Rusty', facts:{ 'Color':'Rust', 'Hobby':'Being dramatic', 'Army':'Surprisingly good' }, blurb:'Went through a phase four billion years ago. The phase never ended.',
+        anns:['Big angry volcano','Dome full of gym rats','Terraforming (vibes only)','Ice (for smoothies)'] },
+      jupiter: { name:'Absolute Unit', facts:{ 'Size':'Absolutely a unit', 'Storm':'Big mad' }, blurb:'In awe at the size of this lad.',
+        anns:['The Big Mad Spot','Radiation (rude)','Moon zoo — 95 exhibits'] },
+      saturn: { name:'Lord of the Hoops', facts:{ 'Rings':'All of them', 'Skill':'4.5 billion year hula streak' }, blurb:'Show-off. Everyone agrees. Nobody says it to his face.',
+        anns:['Hoop division','Ice chips (crunchy)','Titan (smells weird)'] },
+      uranus: { name:'Sideways Steve', facts:{ 'Posture':'Concerning', 'Chiropractor':'Booked out' }, blurb:'One bad day a few billion years ago and now the whole orbit knows him as Sideways Steve.',
+        anns:['Completely sideways','Nobody visits Steve','Faint sad hoop'] },
+      neptune: { name:'Moody Blue', facts:{ 'Mood':'Blue', 'Wind':'Extremely' }, blurb:'It’s not a phase, it’s who he is. The 2,000 km/h screaming helps.',
+        anns:['Peak moodiness','2,000 km/h tantrum','Edge of the fridge'] },
+      ceres: { name:'Snack Rock', pill:'Snacks', facts:{ 'Snacks':'Yes', 'Gravity':'Optional', 'Vibe':'Munchable' }, blurb:'The Syndicate guards the good chips. The okay chips are a free-for-all.',
+        anns:['Snack intake spindle','Snack storage tiers','Nap gravity — 0.3 g','Crumb reclamation'] },
+      eros: { name:'The Cursed Potato', pill:'Cursed 🥔', facts:{ 'Status':'EXTREMELY cursed', 'Glow':'Should it do that?', 'Advice':'No' }, blurb:'Every universe has one object you simply do not touch. This is ours. Stop asking.',
+        anns:[{t:'Cursed glow (do not touch)',warn:true},{t:'Ground zero — bad vibes',warn:true},{t:'Whisper zone',warn:true},{t:'Thermal nope',warn:true},{t:'1.5M rubberneckers',warn:true}] },
+      tycho: { name:'The Donut Factory', pill:'Donuts', facts:{ 'Product':'Ships (donut-shaped)', 'Quality':'Chef’s kiss', 'Sprinkles':'Structural' }, blurb:'They said a donut can’t be a shipyard. They were wrong and also hungry.',
+        anns:['Donut (structural)','Giant space donut frame','Sprinkle ring — 0.5 g','Tiny ship parking'] },
+      hecate: { name:'Fort Kaboom', pill:'Kaboom', facts:{ 'Class':'Aggressively decorated', 'Volume':'11', 'Deposit':'Non-refundable' }, blurb:'The Rust Enthusiasts built a battleship. Nobody remembers why. Nobody asks twice.',
+        anns:['Big boat of boom','The pointy rail','Pew-pew grid','Torpedo cupboard','Zoom cluster'] },
+      l4yard: { name:'Build-A-Ship Workshop', pill:'Build-A-Ship', facts:{ 'Slogan':'You break it, you buy it', 'Glue':'Industrial', 'Returns':'No' }, blurb:'Pick a hull, stuff it with dreams, cry at checkout.',
+        anns:['Some assembly required','Hull (60% vibes)','Crane game','Warranty void zone'] },
+      gate: { name:'The Wobbly Hole', pill:'Wobbly Hole', facts:{ 'Type':'Hole (wobbly)', 'Inside':'Do NOT', 'Wobble rating':'8.9' }, blurb:'It wobbles. It hums. Sometimes it wobbles AND hums. The Fan Club sells tickets; the Syndicate sells earplugs.',
+        anns:['Alloy of questionable origin',{t:'The wobbly bit',warn:true},'Ø big','Beyond: ????'] }
+    }
+  }
+};
+const THEME_GAS = {
+  neon: [ ['#ff2d95','#7a0f4d','#2de1ff','#12064d'], ['#2de1ff','#0f3d7a','#b026ff','#050a2e'], ['#b6ff2d','#0f7a4d','#ff2d95','#06124d'] ],
+  retro: [ ['#f7c9a0','#e8a06b','#fae3c8','#d98a55'], ['#a0d8f7','#6bb0e8','#c8ecfa','#55a0d9'], ['#d8f7a0','#b0e86b','#ecfac8','#a0d955'] ],
+  chaos: [ ['#ff3b3b','#ffb13b','#fff53b','#3bff6a'], ['#3bffec','#3b8cff','#8c3bff','#ff3bd4'], ['#ff3bd4','#fff53b','#3bffec','#ff3b3b'], ['#7cff00','#00ffe1','#ff00d0','#ffe100'] ]
+};
+const THEME_ROCKY = {
+  neon: [0x241436, 0x0d081f, 0xff2d95],
+  retro: [0xd9a06b, 0x9c6b3f, 0xf7dfc0],
+  chaos: [0x8c3bff, 0x3b1f66, 0xffe100]
+};
+let currentTheme = 'expanse';
+
+function loreFor(key){
+  let base;
+  if(key === 'sun') base = SUN_BODY;
+  else base = PLANETS.find(p=>p.key===key) || STATIONS.find(s=>s.key===key) || RING_GATE;
+  const o = (THEMES[currentTheme].bodies || {})[key] || {};
+  return {
+    key,
+    name: o.name || base.name,
+    faction: o.faction || base.faction,
+    facts: o.facts || base.facts,
+    blurb: o.blurb || base.blurb,
+    pill: o.pill || base.pill || o.name || base.name,
+    anns: o.anns
+  };
+}
+
+function getPlanetSkin(p, W, H){
+  const t = currentTheme;
+  if(t === 'neon' || t === 'retro' || t === 'chaos'){
+    const pi = PLANETS.indexOf(p);
+    if(t !== 'chaos' && p.type === 'earth') return makeEarthTexture(W, H);
+    if(t !== 'chaos' && p.type === 'rocky'){
+      const a = THEME_ROCKY[t];
+      return makeRockyTexture(a[0], a[1], a[2], p.texArgs ? p.texArgs[3] : 140, W, H);
+    }
+    const pals = THEME_GAS[t];
+    return makeGasTexture(pals[pi % pals.length], null, W, H);
+  }
+  if(p.type === 'rocky') return makeRockyTexture(p.texArgs[0], p.texArgs[1], p.texArgs[2], p.texArgs[3], W, H);
+  if(p.type === 'gas') return makeGasTexture(p.texArgs[0], p.texArgs[1], W, H);
+  return makeEarthTexture(W, H);
+}
+
+/* ---------------------------------------------------------------------
    PLANET DATA (with Expanse dossiers)
 --------------------------------------------------------------------- */
 const PLANETS = [
@@ -600,6 +829,7 @@ const SUN_BODY = {
    BUILD PLANETS  (tilt group decoupled from spin so rings don't tumble)
 --------------------------------------------------------------------- */
 const selectableRoots = [];
+const orbitMats = [];
 
 function buildPlanet(data){
   const pivot = new THREE.Object3D();
@@ -662,7 +892,9 @@ function buildPlanet(data){
     curvePts.push(new THREE.Vector3(Math.cos(a)*data.distance, 0, Math.sin(a)*data.distance));
   }
   const orbitGeo = new THREE.BufferGeometry().setFromPoints(curvePts);
-  scene.add(new THREE.LineLoop(orbitGeo, new THREE.LineBasicMaterial({ color: 0x3d6f7a, transparent:true, opacity:0.3 })));
+  const orbitMat = new THREE.LineBasicMaterial({ color: 0x3d6f7a, transparent:true, opacity:0.3 });
+  orbitMats.push(orbitMat);
+  scene.add(new THREE.LineLoop(orbitGeo, orbitMat));
 
   data._pivot = pivot;
   data._holder = holder;
@@ -945,31 +1177,210 @@ const roci = new THREE.Group();
   scene.add(roci);
 })();
 
-const plume = new THREE.Sprite(new THREE.SpriteMaterial({
-  map: makeGlowSprite('rgba(190,230,255,1)','rgba(90,160,255,0.55)',128),
-  transparent:true, depthWrite:false, blending: THREE.AdditiveBlending
-}));
-plume.position.z = 1.7;
-plume.scale.set(0.1,0.1,1);
-roci.add(plume);
+function attachPlume(shipGroup, inner, outer, z){
+  const p = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeGlowSprite(inner, outer, 128),
+    transparent:true, depthWrite:false, blending: THREE.AdditiveBlending
+  }));
+  p.position.z = z;
+  p.scale.set(0.1, 0.1, 1);
+  shipGroup.add(p);
+  shipGroup.userData.plume = p;
+}
+attachPlume(roci, 'rgba(190,230,255,1)', 'rgba(90,160,255,0.55)', 1.7);
+
+/* --- theme ships (all nose -Z, engines +Z, like the Roci) --- */
+function buildTrekShip(){
+  const g = new THREE.Group();
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0xc8ccd4, roughness: 0.45, metalness: 0.55 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x3a3f4a, roughness: 0.6, metalness: 0.4 });
+  const saucer = new THREE.Mesh(new THREE.SphereGeometry(0.95, 24, 12), hullMat);
+  saucer.scale.set(1, 0.22, 1);
+  saucer.position.z = -0.8;
+  g.add(saucer);
+  const bridge = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), hullMat);
+  bridge.scale.set(1, 0.5, 1);
+  bridge.position.set(0, 0.14, -0.8);
+  g.add(bridge);
+  const neck = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.5, 0.6), hullMat);
+  neck.position.set(0, -0.3, -0.15);
+  neck.rotation.x = 0.5;
+  g.add(neck);
+  const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 1.4, 12), hullMat);
+  eng.rotation.x = Math.PI/2;
+  eng.position.set(0, -0.55, 0.35);
+  g.add(eng);
+  const deflector = new THREE.Mesh(new THREE.CircleGeometry(0.17, 12), new THREE.MeshBasicMaterial({ color: 0xffb060 }));
+  deflector.position.set(0, -0.55, -0.36);
+  deflector.rotation.y = Math.PI;
+  g.add(deflector);
+  for(const s of [-1, 1]){
+    const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.5), hullMat);
+    pylon.position.set(s*0.45, -0.25, 0.75);
+    pylon.rotation.z = s*0.7;
+    g.add(pylon);
+    const nac = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1.5, 10), dark);
+    nac.rotation.x = Math.PI/2;
+    nac.position.set(s*0.75, 0.02, 0.75);
+    g.add(nac);
+    const bussard = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), new THREE.MeshBasicMaterial({ color: 0xff4a3a }));
+    bussard.position.set(s*0.75, 0.02, 0);
+    g.add(bussard);
+    const grille = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.08, 1.1), new THREE.MeshBasicMaterial({ color: 0x66c8ff }));
+    grille.position.set(s*0.75 - s*0.13, 0.02, 0.75);
+    g.add(grille);
+  }
+  attachPlume(g, 'rgba(140,200,255,1)', 'rgba(80,140,255,0.5)', 1.7);
+  return g;
+}
+
+function buildNeonShip(){
+  const g = new THREE.Group();
+  const geo = new THREE.ConeGeometry(0.45, 2.8, 4);
+  geo.rotateY(Math.PI/4);
+  const body = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x0d0d17, roughness: 0.3, metalness: 0.8 }));
+  body.rotation.x = -Math.PI/2;   // apex to -Z
+  g.add(body);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xff2d95 }));
+  edges.rotation.x = -Math.PI/2;
+  g.add(edges);
+  const cockpit = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.4), new THREE.MeshBasicMaterial({ color: 0x2de1ff }));
+  cockpit.position.set(0, 0.22, -0.5);
+  g.add(cockpit);
+  for(const s of [-1, 1]){
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.6), new THREE.MeshStandardMaterial({ color: 0x1a1028, roughness: 0.4, metalness: 0.7 }));
+    fin.position.set(s*0.45, -0.1, 1.0);
+    fin.rotation.z = s*0.3;
+    g.add(fin);
+  }
+  attachPlume(g, 'rgba(45,225,255,1)', 'rgba(255,45,149,0.5)', 1.6);
+  return g;
+}
+
+function buildRetroShip(){
+  const g = new THREE.Group();
+  const chrome = new THREE.MeshStandardMaterial({ color: 0xd8dde4, roughness: 0.12, metalness: 1.0 });
+  const red = new THREE.MeshStandardMaterial({ color: 0xd6483c, roughness: 0.35, metalness: 0.4 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 2, 14), chrome);
+  body.rotation.x = Math.PI/2;
+  g.add(body);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.95, 14), chrome);
+  nose.rotation.x = -Math.PI/2;
+  nose.position.z = -1.47;
+  g.add(nose);
+  const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.39, 0.39, 0.22, 14), red);
+  stripe.rotation.x = Math.PI/2;
+  stripe.position.z = -0.55;
+  g.add(stripe);
+  for(let i=0;i<4;i++){
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.55, 0.8), red);
+    const a = (i/4)*Math.PI*2 + Math.PI/4;
+    fin.position.set(Math.cos(a)*0.42, Math.sin(a)*0.42, 0.75);
+    fin.rotation.z = a + Math.PI/2;
+    g.add(fin);
+  }
+  for(let i=0;i<3;i++){
+    const port = new THREE.Mesh(new THREE.CircleGeometry(0.05, 10), new THREE.MeshBasicMaterial({ color: 0xbfe8ff }));
+    port.position.set(0.36, 0.06, -0.7 + i*0.5);
+    port.rotation.y = Math.PI/2;
+    g.add(port);
+  }
+  attachPlume(g, 'rgba(255,200,90,1)', 'rgba(255,110,40,0.6)', 1.35);
+  return g;
+}
+
+function buildChaosShip(){
+  const g = new THREE.Group();
+  const disc = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12), new THREE.MeshStandardMaterial({ color: 0xb8c8ff, roughness: 0.18, metalness: 0.95 }));
+  disc.scale.set(1, 0.24, 1);
+  g.add(disc);
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(0.42, 16, 10, 0, Math.PI*2, 0, Math.PI/2),
+    new THREE.MeshStandardMaterial({ color: 0x7cffec, transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.2 })
+  );
+  dome.position.y = 0.18;
+  g.add(dome);
+  const col = new THREE.Color();
+  for(let i=0;i<8;i++){
+    col.setHSL(i/8, 1, 0.6);
+    const light = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshBasicMaterial({ color: col.getHex() }));
+    const a = (i/8)*Math.PI*2;
+    light.position.set(Math.cos(a)*0.95, 0, Math.sin(a)*0.95);
+    g.add(light);
+  }
+  attachPlume(g, 'rgba(255,80,220,1)', 'rgba(80,255,220,0.55)', 0.9);
+  return g;
+}
+
+const SHIPS = { expanse: roci };
+SHIPS.trek = buildTrekShip();
+SHIPS.neon = buildNeonShip();
+SHIPS.retro = buildRetroShip();
+SHIPS.chaos = buildChaosShip();
+['trek','neon','retro','chaos'].forEach(k => { SHIPS[k].visible = false; scene.add(SHIPS[k]); });
+let ship = SHIPS.expanse;
 
 /* ---------------------------------------------------------------------
    LABELS
 --------------------------------------------------------------------- */
 const labelLayer = document.getElementById('labelLayer');
 let labelsOn = false;
-const labelEntries = [];   // { el, obj }
-function makeLabel(text, obj){
+const labelEntries = [];   // { el, obj, key }
+function makeLabel(text, obj, key){
   const el = document.createElement('div');
   el.className = 'label'; el.textContent = text;
   el.style.display = 'none';
   labelLayer.appendChild(el);
-  labelEntries.push({ el, obj });
+  labelEntries.push({ el, obj, key });
 }
-makeLabel('Sol', sunMesh);
-PLANETS.forEach(p => makeLabel(p.name, p._mesh));
-STATIONS.forEach(s => makeLabel(s.name, s._model));
-makeLabel('The Ring', RING_GATE._model);
+makeLabel('Sol', sunMesh, 'sun');
+PLANETS.forEach(p => makeLabel(p.name, p._mesh, p.key));
+STATIONS.forEach(s => makeLabel(s.name, s._model, s.key));
+makeLabel('The Ring', RING_GATE._model, 'gate');
+
+/* chaos-only sky decor: nebulas + rainbow stars */
+const nebulaGroup = new THREE.Group();
+[['rgba(255,60,200,0.5)','rgba(255,60,200,0.18)'],
+ ['rgba(60,200,255,0.5)','rgba(60,200,255,0.18)'],
+ ['rgba(255,230,60,0.45)','rgba(255,230,60,0.15)'],
+ ['rgba(120,255,120,0.45)','rgba(120,255,120,0.15)'],
+ ['rgba(160,60,255,0.5)','rgba(160,60,255,0.18)'],
+ ['rgba(255,120,60,0.45)','rgba(255,120,60,0.15)']].forEach(cols => {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeGlowSprite(cols[0], cols[1], 256),
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:0.55
+  }));
+  const r = rnd(700, 1400);
+  const th = Math.acos(rnd(-1,1)), ph = rnd(0, Math.PI*2);
+  s.position.set(r*Math.sin(th)*Math.cos(ph), r*Math.cos(th)*0.5, r*Math.sin(th)*Math.sin(ph));
+  const sc = rnd(300, 620);
+  s.scale.set(sc, sc, 1);
+  nebulaGroup.add(s);
+});
+nebulaGroup.visible = false;
+scene.add(nebulaGroup);
+
+const rainbowStars = (function(){
+  const N = 2500;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(N*3), col = new Float32Array(N*3);
+  const c = new THREE.Color();
+  for(let i=0;i<N;i++){
+    const r = rnd(500, 2800);
+    const th = Math.acos(rnd(-1,1)), ph = rnd(0, Math.PI*2);
+    pos[i*3] = r*Math.sin(th)*Math.cos(ph);
+    pos[i*3+1] = r*Math.cos(th);
+    pos[i*3+2] = r*Math.sin(th)*Math.sin(ph);
+    c.setHSL(Math.random(), 0.9, 0.65);
+    col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col,3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map: makeStarSprite(), size: 3.2, vertexColors: true, transparent:true, depthWrite:false, opacity:0.95 }));
+  pts.visible = false;
+  scene.add(pts);
+  return pts;
+})();
 
 const _v = new THREE.Vector3();
 const _camDir = new THREE.Vector3();
@@ -1112,27 +1523,41 @@ function sizeInspect(){
 }
 
 function showInfo(body){
-  infoName.textContent = body.name;
-  infoTag.textContent = FACTION_NAMES[body.faction] || body.faction;
-  infoTag.className = 'chip ' + body.faction;
+  const L = loreFor(body.key);
+  infoName.textContent = L.name;
+  const fNames = THEMES[currentTheme].factionNames || FACTION_NAMES;
+  infoTag.textContent = fNames[L.faction] || L.faction;
+  infoTag.className = 'chip ' + L.faction;
   infoFacts.innerHTML = '';
-  Object.entries(body.facts).forEach(([k,v]) => {
+  Object.entries(L.facts).forEach(([k,v]) => {
     const row = document.createElement('div');
     row.className = 'fact';
     row.innerHTML = `<span>${k}</span><span>${v}</span>`;
     infoFacts.appendChild(row);
   });
-  infoBlurb.textContent = body.blurb;
+  infoBlurb.textContent = L.blurb;
   openInspect(body.key);
 }
 function hideInfo(){ closeInspect(); }
 document.getElementById('infoClose').addEventListener('click', resetView);
 
+function resolveAnns(key, baseAnns){
+  if(currentTheme === 'expanse') return baseAnns;
+  const L = loreFor(key);
+  if(!L.anns) return [];
+  return baseAnns.map((a, i) => {
+    const o = L.anns[i];
+    if(!o) return null;
+    return { p: a.p, t: (typeof o === 'string') ? o : o.t, warn: (typeof o === 'object') && !!o.warn };
+  }).filter(Boolean);
+}
+
 function openInspect(key){
   ensureInspect();
   if(iModel) iScene.remove(iModel);
-  let entry = inspectCache[key];
-  if(!entry){ entry = buildInspectModel(key); inspectCache[key] = entry; }
+  const ck = currentTheme + ':' + key;
+  let entry = inspectCache[ck];
+  if(!entry){ entry = buildInspectModel(key); inspectCache[ck] = entry; }
   iModel = entry.group;
   iUpdate = entry.update || null;
   iRadius = entry.radius;
@@ -1141,7 +1566,7 @@ function openInspect(key){
   iCamDist = iRadius * 4.3;
   iCam.position.set(0, 0, iCamDist);
   iCam.lookAt(0,0,0);
-  buildAnnDom(entry.anns || []);
+  buildAnnDom(resolveAnns(key, entry.anns || []));
   inspectEl.classList.add('open');
   inspectOpen = true;
   requestAnimationFrame(sizeInspect);
@@ -1347,12 +1772,10 @@ function buildInspectModel(key){
   else if(planet){
     radius = planet.type === 'gas' ? 3.4 : 3.0;
     const R = planet.type === 'gas' ? 3.2 : 2.8;
-    let tex;
-    if(planet.type === 'rocky') tex = makeRockyTexture(planet.texArgs[0], planet.texArgs[1], planet.texArgs[2], planet.texArgs[3]*2.2, 1024, 512);
-    else if(planet.type === 'gas') tex = makeGasTexture(planet.texArgs[0], planet.texArgs[1], 1024, 512);
-    else tex = makeEarthTexture(1024, 512);
+    const realisticSkin = (currentTheme === 'expanse' || currentTheme === 'trek');
+    const tex = getPlanetSkin(planet, 1024, 512);
 
-    if(key === 'mars'){
+    if(realisticSkin && key === 'mars'){
       const cnv = tex.image, ctx = cnv.getContext('2d');
       ctx.fillStyle = 'rgba(255,246,238,0.92)';
       ctx.fillRect(0, 0, 1024, 30);
@@ -1366,7 +1789,7 @@ function buildInspectModel(key){
       ctx.beginPath(); ctx.moveTo(360,300); ctx.bezierCurveTo(470,312, 560,290, 640,300); ctx.stroke();
       tex.needsUpdate = true;
     }
-    if(key === 'neptune'){
+    if(realisticSkin && key === 'neptune'){
       const cnv = tex.image, ctx = cnv.getContext('2d');
       const gg = ctx.createRadialGradient(700,300,6, 700,300,60);
       gg.addColorStop(0,'rgba(16,22,70,0.85)'); gg.addColorStop(1,'rgba(16,22,70,0)');
@@ -1820,7 +2243,7 @@ function addPill(key, label, colorHex, diamond, onClick){
   btn.className = 'pbtn';
   btn.dataset.key = key;
   const hex = '#' + colorHex.toString(16).padStart(6,'0');
-  btn.innerHTML = `<span class="dot${diamond?' diamond':''}" style="background:${hex}; color:${hex}"></span><span>${label}</span>`;
+  btn.innerHTML = `<span class="dot${diamond?' diamond':''}" style="background:${hex}; color:${hex}"></span><span class="pill-label">${label}</span>`;
   btn.addEventListener('click', onClick);
   planetBar.appendChild(btn);
 }
@@ -1923,13 +2346,13 @@ function enterShipMode(){
   setActivePill(null);
 
   // spawn at the camera, pointed where the camera is looking
-  roci.position.copy(camera.position);
+  ship.position.copy(camera.position);
   const look = new THREE.Vector3();
   camera.getWorldDirection(look);
   shipYaw = Math.atan2(-look.x, -look.z);
   shipPitch = Math.asin(THREE.MathUtils.clamp(look.y, -1, 1));
   shipVel.set(0,0,0);
-  roci.visible = true;
+  ship.visible = true;
 
   orbitControls.enabled = false;
   btnShip.classList.add('on');
@@ -1937,18 +2360,22 @@ function enterShipMode(){
   thrustPad.style.display = 'flex';
   steerHint.style.display = 'block';
   hintEl.style.display = 'none';
+  document.getElementById('title').style.display = 'none';
+  document.getElementById('themeTabs').style.display = 'none';
   syncControlsHeight();
 }
 
 function exitShipMode(){
   shipMode = false;
-  roci.visible = false;
+  ship.visible = false;
   orbitControls.enabled = true;
-  orbitControls.target.copy(roci.position).add(new THREE.Vector3(0,0,-1));
+  orbitControls.target.copy(ship.position).add(new THREE.Vector3(0,0,-1));
   btnShip.classList.remove('on');
   shipHUD.style.display = 'none';
   thrustPad.style.display = 'none';
   steerHint.style.display = 'none';
+  document.getElementById('title').style.display = '';
+  document.getElementById('themeTabs').style.display = '';
 }
 
 // keyboard
@@ -2025,21 +2452,25 @@ renderer.domElement.addEventListener('wheel', (e) => {
   chaseDist = THREE.MathUtils.clamp(chaseDist * (1 + e.deltaY * 0.0012), 3, 160);
 }, { passive: false });
 
-// nearest-body readout
-const NAV_POINTS = [
-  { name:'SOL', get: () => new THREE.Vector3(0,0,0) },
-  ...PLANETS.map(p => ({ name: p.name.toUpperCase(), get: () => p._holder.getWorldPosition(new THREE.Vector3()) })),
-  ...STATIONS.map(s => ({ name: s.name.toUpperCase(), get: () => s._holder.getWorldPosition(new THREE.Vector3()) })),
-  { name:'THE RING', get: () => RING_GATE._holder.getWorldPosition(new THREE.Vector3()) },
-];
+// nearest-body readout (names follow the active theme)
+let NAV_POINTS = [];
+function refreshNavPoints(){
+  NAV_POINTS = [
+    { name: loreFor('sun').name.toUpperCase(), get: () => new THREE.Vector3(0,0,0) },
+    ...PLANETS.map(p => ({ name: loreFor(p.key).name.toUpperCase(), get: () => p._holder.getWorldPosition(new THREE.Vector3()) })),
+    ...STATIONS.map(s => ({ name: loreFor(s.key).name.toUpperCase(), get: () => s._holder.getWorldPosition(new THREE.Vector3()) })),
+    { name: loreFor('gate').name.toUpperCase(), get: () => RING_GATE._holder.getWorldPosition(new THREE.Vector3()) },
+  ];
+}
+refreshNavPoints();
 
 function updateShip(dt){
   // steering: drag sets yaw/pitch directly; arrow keys also steer
   if(keys.left)  shipYaw += 1.7 * dt;
   if(keys.right) shipYaw -= 1.7 * dt;
-  roci.rotation.set(shipPitch, shipYaw, 0, 'YXZ');
+  ship.rotation.set(shipPitch, shipYaw, 0, 'YXZ');
 
-  const fwd = new THREE.Vector3(0,0,-1).applyEuler(roci.rotation);
+  const fwd = new THREE.Vector3(0,0,-1).applyEuler(ship.rotation);
   const boost = keys.boost ? BOOST_MULT : 1;
   const burning = keys.fwd || touchThrust.burn;
   const retro = keys.back || touchThrust.retro;
@@ -2051,20 +2482,21 @@ function updateShip(dt){
 
   const cap = MAX_SPEED * boost;
   if(shipVel.length() > cap) shipVel.setLength(cap);
-  roci.position.addScaledVector(shipVel, dt);
+  ship.position.addScaledVector(shipVel, dt);
 
   // drive plume scales with burn
+  const plume = ship.userData.plume;
   const thrustLevel = burning ? (keys.boost ? 1 : 0.6) : (retro ? 0.25 : 0);
   const target = 0.1 + thrustLevel * 3.2;
   plume.scale.x += (target - plume.scale.x) * Math.min(1, 10*dt);
   plume.scale.y = plume.scale.x;
 
   // chase camera
-  const camPos = roci.position.clone()
+  const camPos = ship.position.clone()
     .addScaledVector(fwd, -chaseDist)
     .add(new THREE.Vector3(0, chaseDist*0.35, 0));
   camera.position.lerp(camPos, 1 - Math.pow(0.0001, dt));
-  const lookAt = roci.position.clone().addScaledVector(fwd, 12);
+  const lookAt = ship.position.clone().addScaledVector(fwd, 12);
   camera.lookAt(lookAt);
 
   // HUD
@@ -2073,11 +2505,63 @@ function updateShip(dt){
   hudThr.textContent = braking ? 'FLIP & BURN' : (burning ? (keys.boost ? 'EPSTEIN' : 'BURN') : (retro ? 'RETRO' : 'IDLE'));
   let best = null, bestD = Infinity;
   for(const n of NAV_POINTS){
-    const d = n.get().distanceTo(roci.position);
+    const d = n.get().distanceTo(ship.position);
     if(d < bestD){ bestD = d; best = n; }
   }
   if(best) hudNear.textContent = best.name + ' ' + (bestD*3).toFixed(0) + ' Mm';
 }
+
+/* ---------------------------------------------------------------------
+   THEME SWITCHING
+--------------------------------------------------------------------- */
+function applyTheme(id){
+  currentTheme = id;
+  document.body.className = id === 'expanse' ? '' : 'theme-' + id;
+  const T = THEMES[id];
+  document.getElementById('titleMain').textContent = T.title;
+  document.getElementById('titleSub').textContent = T.sub;
+  document.querySelectorAll('#themeTabs button').forEach(b => b.classList.toggle('on', b.dataset.theme === id));
+
+  labelEntries.forEach(e => { e.el.textContent = loreFor(e.key).name; });
+  [...planetBar.children].forEach(el => {
+    const lbl = el.querySelector('.pill-label');
+    if(lbl) lbl.textContent = loreFor(el.dataset.key).pill;
+  });
+
+  PLANETS.forEach(p => {
+    p._skins = p._skins || {};
+    if(!p._skins[id]) p._skins[id] = getPlanetSkin(p, 512, 256);
+    p._mesh.material.map = p._skins[id];
+    p._mesh.material.needsUpdate = true;
+  });
+
+  sunMesh.material.color.setHex(T.sunTint || 0xffffff);
+  sunGlow.material.color.setHex(T.sunGlowTint || 0xffffff);
+  orbitMats.forEach((m, i) => {
+    if(T.orbitRainbow) m.color.setHSL(i/orbitMats.length, 0.9, 0.6);
+    else m.color.setHex(T.orbitColor);
+  });
+  nebulaGroup.visible = !!T.nebulas;
+  rainbowStars.visible = !!T.nebulas;
+
+  const oldShip = ship;
+  ship = SHIPS[id] || SHIPS.expanse;
+  if(oldShip !== ship){
+    ship.position.copy(oldShip.position);
+    ship.rotation.copy(oldShip.rotation);
+    ship.visible = oldShip.visible;
+    oldShip.visible = false;
+  }
+  document.getElementById('hudShip').textContent = T.shipHud;
+
+  refreshNavPoints();
+  if(inspectOpen) hideInfo();
+  syncControlsHeight();
+}
+
+document.querySelectorAll('#themeTabs button').forEach(b => {
+  b.addEventListener('click', () => applyTheme(b.dataset.theme));
+});
 
 /* ---------------------------------------------------------------------
    ANIMATION LOOP
