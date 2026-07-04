@@ -95,6 +95,24 @@
   #crosshair:before { left: 50%; top: 0; width: 1.5px; height: 100%; transform: translateX(-50%); }
   #crosshair:after { top: 50%; left: 0; height: 1.5px; width: 100%; transform: translateY(-50%); }
   body.theme-wars.flying #crosshair, body.theme-trek.flying #crosshair, body.theme-expanse.flying #crosshair { display: block; }
+  #portMarker {
+    display: none; position: fixed; z-index: 11; width: 34px; height: 34px;
+    border: 1.5px solid #ffd54a; transform: translate(-50%,-50%); pointer-events: none;
+    box-shadow: 0 0 10px rgba(255,213,74,.35);
+  }
+  #portMarker span {
+    position: absolute; top: 36px; left: 50%; transform: translateX(-50%);
+    color: #ffd54a; font-size: 9.5px; letter-spacing: .12em; white-space: nowrap;
+    text-shadow: 0 0 6px #000;
+  }
+  @keyframes lockPulse { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.2); } }
+  #portMarker.lock { border-color: #ff5040; animation: lockPulse .7s infinite; }
+  #portMarker.lock span { color: #ff5040; }
+  #warsToast {
+    display: none; position: fixed; left: 50%; top: 22%; transform: translate(-50%,-50%);
+    z-index: 12; color: #ffd54a; font-size: 13px; letter-spacing: .24em; text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(0,0,0,.9); pointer-events: none; text-align: center; width: 90vw;
+  }
   #flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 38; transition: opacity .25s; }
   #dmg { position: fixed; inset: 0; background: radial-gradient(ellipse at center, transparent 52%, rgba(255,40,20,.55) 100%); opacity: 0; pointer-events: none; z-index: 37; }
   #warsBanner {
@@ -282,6 +300,8 @@
 </div>
 
 <div id="crosshair"></div>
+<div id="portMarker"><span id="portMarkerLabel"></span></div>
+<div id="warsToast"></div>
 <div id="dmg"></div>
 <div id="flash"></div>
 <div id="warsBanner" class="glass cut">
@@ -2805,7 +2825,7 @@ const wars = {
   shield: 100, kills: 0, torps: 6, nukes: 4, won: false, deaths: 0,
   wave: 0, waveAt: 0, beamPuffT: 0,
   lastFire: 0, lastHitT: -99, fireball: null, fireT: 0, tieRespawnAt: [],
-  graceUntil: 0
+  graceUntil: 0, escape: null, trenchIn: false, toastUntil: 0
 };
 const TIE_MAX = 6;
 const boltGeo = new THREE.BoxGeometry(0.09, 0.09, 1.7);
@@ -3215,6 +3235,11 @@ function playerDown(t){
 function warsWin(){
   if(wars.won) return;
   wars.won = true;
+  if(shipMode && currentTheme === 'wars'){
+    const dir = ship.position.clone().normalize();
+    if(dir.lengthSq() < 0.01) dir.set(0, 0.2, 1).normalize();
+    wars.escape = { t: 0, dir };
+  }
   flashEl.style.opacity = '1';
   setTimeout(() => flashEl.style.opacity = '0', 300);
   const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16),
@@ -3243,6 +3268,9 @@ function resetBattle(){
   phaserBeam.visible = false;
   wars.shield = 100; wars.kills = 0; wars.won = false;
   wars.wave = 0; wars.waveAt = 0;
+  wars.escape = null; wars.trenchIn = false; wars.toastUntil = 0;
+  document.getElementById('portMarker').style.display = 'none';
+  document.getElementById('warsToast').style.display = 'none';
   wars.graceUntil = clock.getElapsedTime() + 5;
   deathStar.visible = currentTheme === 'wars';
   warsBanner.style.display = 'none';
@@ -3306,8 +3334,38 @@ function updatePhaser(dt, t, firing){
   }
 }
 
+function updateEscape(dt){
+  const e = wars.escape;
+  if(!e) return;
+  e.t += dt;
+  // full burn away from the blast
+  const speed = Math.min(75, 18 + e.t * 26);
+  shipVel.copy(e.dir).multiplyScalar(speed);
+  ship.position.addScaledVector(shipVel, dt);
+  shipYaw = Math.atan2(-e.dir.x, -e.dir.z);
+  shipPitch = Math.asin(THREE.MathUtils.clamp(e.dir.y, -1, 1));
+  ship.rotation.set(shipPitch, shipYaw, 0, 'YXZ');
+  const plume = ship.userData.plume;
+  plume.scale.x += (3.4 - plume.scale.x) * Math.min(1, 10*dt);
+  plume.scale.y = plume.scale.x;
+  // cinematic three-quarter camera: ship in front, explosion behind
+  const side = _wv.crossVectors(e.dir, camera.up);
+  if(side.lengthSq() < 0.01) side.set(1, 0, 0);
+  side.normalize();
+  const camPos = ship.position.clone()
+    .addScaledVector(side, 11)
+    .addScaledVector(e.dir, 7)
+    .add(new THREE.Vector3(0, 3.5, 0));
+  camera.position.lerp(camPos, 1 - Math.pow(0.0001, dt));
+  camera.lookAt(ship.position.clone().addScaledVector(e.dir, -20));
+  hudVel.textContent = (shipVel.length() * 3).toFixed(1) + 'k km/s';
+  hudThr.textContent = 'ESCAPE BURN';
+  if(e.t > 5.5) wars.escape = null;
+}
+
 function warsUpdate(dt){
   if(!warsGroup.visible) return;
+  if(!shipMode || currentTheme !== 'wars') document.getElementById('portMarker').style.display = 'none';
   const t = clock.getElapsedTime();
   const theme = currentTheme;
 
@@ -3470,6 +3528,15 @@ function warsUpdate(dt){
   const portWorld = PORT_POS;
   for(let i = wars.pBolts.length - 1; i >= 0; i--){
     const b = wars.pBolts[i];
+    // proton torpedoes veer into the exhaust port at close range
+    if(b.torp && theme === 'wars' && deathStar.visible){
+      const dp = b.m.position.distanceTo(portWorld);
+      if(dp < 30){
+        const want = _wv.copy(portWorld).sub(b.m.position).normalize().multiplyScalar(b.vel.length());
+        b.vel.lerp(want, Math.min(1, 3.2*dt));
+        b.m.lookAt(b.m.position.clone().add(b.vel));
+      }
+    }
     b.m.position.addScaledVector(b.vel, dt);
     b.life -= dt;
     let dead = b.life <= 0;
@@ -3592,6 +3659,42 @@ function warsUpdate(dt){
       const pd = ship.position.distanceTo(portWorld);
       hudPort.textContent = wars.won ? 'DESTROYED' : (pd * 12).toFixed(0) + ' km';
       hudPort.style.color = (!wars.won && pd < 25) ? '#ffd54a' : '';
+      // targeting computer: bracket the exhaust port on screen
+      const marker = document.getElementById('portMarker');
+      if(!wars.won && pd < 90){
+        _wv.copy(portWorld);
+        camera.getWorldDirection(_wv2);
+        const behind = _wv.clone().sub(camera.position).dot(_wv2) < 0;
+        _wv.project(camera);
+        if(!behind && Math.abs(_wv.x) < 1.1 && Math.abs(_wv.y) < 1.1){
+          marker.style.display = 'block';
+          marker.style.left = ((_wv.x*0.5+0.5)*window.innerWidth) + 'px';
+          marker.style.top = ((-_wv.y*0.5+0.5)*window.innerHeight) + 'px';
+          document.getElementById('portMarkerLabel').textContent = 'EXHAUST PORT ' + (pd*12).toFixed(0) + ' km';
+          marker.classList.toggle('lock', pd < 25);
+        } else marker.style.display = 'none';
+        // trench-run mode: tight camera, toast, targeting lock
+        if(pd < 25){
+          if(!wars.trenchIn){
+            wars.trenchIn = true;
+            wars.toastUntil = t + 3.5;
+            const toast = document.getElementById('warsToast');
+            toast.textContent = '— trench run — stay on target —';
+            toast.style.display = 'block';
+          }
+          chaseDist += (5.5 - chaseDist) * Math.min(1, 2*dt);
+          hudThr.textContent = 'TRENCH RUN';
+        } else {
+          wars.trenchIn = false;
+        }
+      } else {
+        marker.style.display = 'none';
+        wars.trenchIn = false;
+      }
+      if(wars.toastUntil && t > wars.toastUntil){
+        wars.toastUntil = 0;
+        document.getElementById('warsToast').style.display = 'none';
+      }
     } else if(theme === 'trek'){
       let md = Infinity;
       wars.cubes.forEach(c => { md = Math.min(md, c.g.position.distanceTo(earthP)); });
@@ -3706,7 +3809,8 @@ function animate(){
   }
 
   if(shipMode){
-    updateShip(dt);
+    if(wars.escape) updateEscape(dt);
+    else updateShip(dt);
   } else {
     if(tweening){
       let t = (clock.getElapsedTime() - tStart) / tDur;
