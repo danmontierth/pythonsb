@@ -82,7 +82,7 @@
 
   /* ---- Death Star battle UI ---- */
   .wars-only { display: none !important; }
-  body.theme-wars .wars-only { display: flex !important; }
+  body.theme-wars .wars-only, body.theme-trek .wars-only, body.theme-expanse .wars-only { display: flex !important; }
   #thrustPad #btnFire { border-color: #ffd54a; color: #ffd54a; background: rgba(255,213,74,.08); }
   #thrustPad #btnFire:active { background: #ffd54a; color: #231a02; }
   #thrustPad #btnTorp { border-color: #ff9a30; color: #ff9a30; background: rgba(255,154,48,.08); }
@@ -94,7 +94,7 @@
   #crosshair:before, #crosshair:after { content: ''; position: absolute; background: rgba(255,213,74,.85); }
   #crosshair:before { left: 50%; top: 0; width: 1.5px; height: 100%; transform: translateX(-50%); }
   #crosshair:after { top: 50%; left: 0; height: 1.5px; width: 100%; transform: translateY(-50%); }
-  body.theme-wars.flying #crosshair { display: block; }
+  body.theme-wars.flying #crosshair, body.theme-trek.flying #crosshair, body.theme-expanse.flying #crosshair { display: block; }
   #flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 38; transition: opacity .25s; }
   #dmg { position: fixed; inset: 0; background: radial-gradient(ellipse at center, transparent 52%, rgba(255,40,20,.55) 100%); opacity: 0; pointer-events: none; z-index: 37; }
   #warsBanner {
@@ -276,9 +276,9 @@
   <div class="row"><span class="k">Drive</span><span class="v mono" id="hudThr">IDLE</span></div>
   <div class="row"><span class="k">Nearest</span><span class="v mono" id="hudNear">—</span></div>
   <div class="row wars-only"><span class="k">Shield</span><span class="v mono" id="hudShield">100%</span></div>
-  <div class="row wars-only"><span class="k">Torps</span><span class="v mono" id="hudTorps">6</span></div>
+  <div class="row wars-only"><span class="k" id="hudTorpsK">Torps</span><span class="v mono" id="hudTorps">6</span></div>
   <div class="row wars-only"><span class="k">Kills</span><span class="v mono" id="hudKills">0</span></div>
-  <div class="row wars-only"><span class="k">Port</span><span class="v mono" id="hudPort">—</span></div>
+  <div class="row wars-only"><span class="k" id="hudPortK">Port</span><span class="v mono" id="hudPort">—</span></div>
 </div>
 
 <div id="crosshair"></div>
@@ -2615,6 +2615,14 @@ function enterShipMode(){
     // launch from the Rebel side, nose at the Death Star
     ship.position.set(0, 4, 70);
     shipYaw = 0; shipPitch = 0;
+  } else if(currentTheme === 'trek'){
+    // launch from Earth orbit, nose toward the incoming Borg
+    const earth = PLANETS.find(p => p.key === 'earth');
+    earth._holder.getWorldPosition(ship.position);
+    const out = ship.position.clone().normalize();
+    ship.position.addScaledVector(out, 8).y += 3;
+    shipYaw = Math.atan2(-out.x, -out.z);
+    shipPitch = 0;
   }
   document.body.classList.add('flying');
 
@@ -2650,9 +2658,9 @@ window.addEventListener('keydown', (e) => {
   else if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
   else if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
   else if(e.key === 'Shift') keys.boost = true;
-  else if(e.key === ' '){ if(currentTheme === 'wars') keys.fire = true; else keys.brake = true; }
+  else if(e.key === ' '){ if(COMBAT_THEMES[currentTheme]) keys.fire = true; else keys.brake = true; }
   else if(e.key === 'x' || e.key === 'X') keys.brake = true;
-  else if((e.key === 't' || e.key === 'T') && currentTheme === 'wars' && shipMode) fireTorpedo();
+  else if((e.key === 't' || e.key === 'T') && COMBAT_THEMES[currentTheme] && shipMode) fireTorpedo();
   else if(e.key === 'Escape'){ if(shipMode) exitShipMode(); else if(inspectOpen) resetView(); }
   else return;
   if(shipMode) e.preventDefault();
@@ -2682,7 +2690,7 @@ holdButton(document.getElementById('btnBrake'), 'brake');
 holdButton(document.getElementById('btnFire'), 'fire');
 document.getElementById('btnTorp').addEventListener('pointerdown', (e) => {
   e.preventDefault();
-  if(currentTheme === 'wars' && shipMode) fireTorpedo();
+  if(COMBAT_THEMES[currentTheme] && shipMode) fireTorpedo();
 });
 
 // pointer steering + pinch camera zoom (ship mode)
@@ -2792,8 +2800,10 @@ warsGroup.visible = false;
 scene.add(warsGroup);
 
 const wars = {
-  ties: [], destroyers: [], pBolts: [], eBolts: [], puffs: [],
-  shield: 100, kills: 0, torps: 6, won: false, deaths: 0,
+  ties: [], destroyers: [], cubes: [], missiles: [], strikes: [],
+  pBolts: [], eBolts: [], puffs: [], nukeFX: [],
+  shield: 100, kills: 0, torps: 6, nukes: 4, won: false, deaths: 0,
+  wave: 0, waveAt: 0, beamPuffT: 0,
   lastFire: 0, lastHitT: -99, fireball: null, fireT: 0, tieRespawnAt: [],
   graceUntil: 0
 };
@@ -2802,6 +2812,8 @@ const boltGeo = new THREE.BoxGeometry(0.09, 0.09, 1.7);
 const boltMatRed = new THREE.MeshBasicMaterial({ color: 0xff3b30 });
 const boltMatGreen = new THREE.MeshBasicMaterial({ color: 0x51ff4a });
 const boltMatTorp = new THREE.MeshBasicMaterial({ color: 0xffa030 });
+const boltMatPDC = new THREE.MeshBasicMaterial({ color: 0xffd080 });
+const boltMatMCR = new THREE.MeshBasicMaterial({ color: 0xff8040 });
 const puffTex = makeGlowSprite('rgba(255,190,90,1)','rgba(255,80,20,0.4)',64);
 const dmgEl = document.getElementById('dmg');
 const flashEl = document.getElementById('flash');
@@ -2834,7 +2846,7 @@ function buildDestroyer(){
   const g = new THREE.Group();
   const hullM = new THREE.MeshStandardMaterial({ color: 0x8d939c, roughness: 0.6, metalness: 0.4 });
   const wedgeGeo = new THREE.ConeGeometry(3, 12, 3);
-  wedgeGeo.rotateX(-Math.PI/2);          // nose to -Z
+  wedgeGeo.rotateX(-Math.PI/2);
   const wedge = new THREE.Mesh(wedgeGeo, hullM);
   wedge.scale.y = 0.28;
   g.add(wedge);
@@ -2854,17 +2866,156 @@ function buildDestroyer(){
   return g;
 }
 
-function spawnTIE(nearPos){
-  const base = nearPos || (shipMode ? ship.position : new THREE.Vector3(0, 4, 70));
+function buildBorgCube(){
+  const g = new THREE.Group();
+  const size = 6;
+  const dark = new THREE.MeshStandardMaterial({ color: 0x121712, roughness: 0.55, metalness: 0.7 });
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(size, size, size), dark));
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(size*1.002, size*1.002, size*1.002)),
+    new THREE.LineBasicMaterial({ color: 0x51ff4a, transparent: true, opacity: 0.85 })
+  );
+  g.add(edges);
+  const gMat = new THREE.MeshStandardMaterial({ color: 0x1c231c, roughness: 0.5, metalness: 0.75 });
+  const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(0.7, 0.7, 0.24), gMat, 120);
+  const dummy = new THREE.Object3D();
+  for(let i=0;i<120;i++){
+    const face = i % 6;
+    const u = rnd(-2.6, 2.6), v = rnd(-2.6, 2.6), w = size/2 + 0.1;
+    const p = face===0?[w,u,v]:face===1?[-w,u,v]:face===2?[u,w,v]:face===3?[u,-w,v]:face===4?[u,v,w]:[u,v,-w];
+    dummy.position.set(p[0], p[1], p[2]);
+    dummy.lookAt(dummy.position.clone().multiplyScalar(2));
+    dummy.scale.setScalar(rnd(0.5, 1.6));
+    dummy.updateMatrix();
+    inst.setMatrixAt(i, dummy.matrix);
+  }
+  g.add(inst);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeGlowSprite('rgba(90,255,110,0.8)','rgba(40,180,60,0.3)',64),
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity: 0.5
+  }));
+  glow.scale.set(9, 9, 1);
+  g.add(glow);
+  g.userData.glow = glow;
+  return g;
+}
+
+function buildBorgSphere(){
+  const g = new THREE.Group();
+  const dark = new THREE.MeshStandardMaterial({ color: 0x141a14, roughness: 0.5, metalness: 0.7 });
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 12), dark));
+  for(const rot of [0, Math.PI/2]){
+    const band = new THREE.Mesh(
+      new THREE.TorusGeometry(0.92, 0.03, 6, 24),
+      new THREE.MeshBasicMaterial({ color: 0x51ff4a, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    band.rotation.x = rot;
+    g.add(band);
+  }
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeGlowSprite('rgba(90,255,110,0.7)','rgba(40,180,60,0.25)',64),
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity: 0.45
+  }));
+  glow.scale.set(2.6, 2.6, 1);
+  g.add(glow);
+  return g;
+}
+
+function buildHunter(){
+  const g = new THREE.Group();
+  const dark = new THREE.MeshStandardMaterial({ color: 0x353a42, roughness: 0.6, metalness: 0.45 });
+  const accent = new THREE.MeshStandardMaterial({ color: 0xe06a2b, roughness: 0.5, metalness: 0.3 });
+  const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 2.4, 8), dark);
+  hull.rotation.x = Math.PI/2;
+  g.add(hull);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.7, 8), dark);
+  nose.rotation.x = -Math.PI/2;
+  nose.position.z = -1.55;
+  g.add(nose);
+  for(const z of [-0.4, 0.6]){
+    const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.41, 0.41, 0.16, 8), accent);
+    stripe.rotation.x = Math.PI/2;
+    stripe.position.z = z;
+    g.add(stripe);
+  }
+  for(const s of [-1, 1]){
+    const pod = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.3, 0.9), dark);
+    pod.position.set(s*0.5, 0, 0.2);
+    g.add(pod);
+  }
+  const plume = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeGlowSprite('rgba(255,170,80,1)','rgba(224,106,43,0.4)',64),
+    transparent:true, blending:THREE.AdditiveBlending, depthWrite:false
+  }));
+  plume.position.z = 1.5;
+  plume.scale.set(0.9, 0.9, 1);
+  g.add(plume);
+  return g;
+}
+
+function buildMissileModel(){
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0xd8dce2, roughness: 0.4, metalness: 0.5 }));
+  body.rotation.x = -Math.PI/2;
+  g.add(body);
+  const plume = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeGlowSprite('rgba(255,220,150,1)','rgba(255,120,40,0.5)',64),
+    transparent:true, blending:THREE.AdditiveBlending, depthWrite:false
+  }));
+  plume.position.z = 0.45;
+  plume.scale.set(0.7, 0.7, 1);
+  g.add(plume);
+  return g;
+}
+
+function buildStrikeMissile(){
+  const g = buildMissileModel();
+  g.scale.setScalar(2.2);
+  return g;
+}
+
+/* beams (phasers / Borg cutting beams) */
+const _beamV = new THREE.Vector3();
+const _beamUp = new THREE.Vector3(0, 1, 0);
+function makeBeamMesh(color, radius){
+  return new THREE.Mesh(
+    new THREE.CylinderGeometry(radius, radius, 1, 6, 1, true),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+  );
+}
+function setBeam(mesh, a, b){
+  _beamV.copy(b).sub(a);
+  const len = Math.max(0.001, _beamV.length());
+  mesh.position.copy(a).addScaledVector(_beamV, 0.5);
+  mesh.quaternion.setFromUnitVectors(_beamUp, _beamV.normalize());
+  mesh.scale.set(1, len, 1);
+}
+const phaserBeam = makeBeamMesh(0xff9a50, 0.06);
+phaserBeam.visible = false;
+warsGroup.add(phaserBeam);
+
+const COMBAT_THEMES = { wars: true, trek: true, expanse: true };
+const FIGHTER_SPEC = {
+  tie:    { hp:1,  r:1.5, speed:28, turn:2.2, fireDist:45, cdMin:2.5, cdMax:5.0, boltSpeed:120, spread:0.12, evadeAt:7 },
+  sphere: { hp:5,  r:1.8, speed:16, turn:1.4, fireDist:38, cdMin:2.2, cdMax:4.2, boltSpeed:100, spread:0.10, evadeAt:9 },
+  hunter: { hp:8,  r:2.0, speed:20, turn:1.2, fireDist:26, cdMin:1.2, cdMax:2.2, boltSpeed:220, spread:0.06, evadeAt:12, missiles:true }
+};
+
+function spawnFighter(kind, nearPos){
+  const spec = FIGHTER_SPEC[kind];
   let pos;
-  do {
-    const dir = new THREE.Vector3(rnd(-1,1), rnd(-0.4,0.4), rnd(-1,1)).normalize();
-    pos = base.clone().addScaledVector(dir, rnd(28, 48));
-  } while(pos.length() < DS_R + 4);
-  const g = buildTIE();
+  if(nearPos) pos = nearPos.clone();
+  else {
+    const base = shipMode ? ship.position : new THREE.Vector3(0, 4, 70);
+    do {
+      const dir = new THREE.Vector3(rnd(-1,1), rnd(-0.4,0.4), rnd(-1,1)).normalize();
+      pos = base.clone().addScaledVector(dir, rnd(28, 48));
+    } while(pos.length() < DS_R + 4);
+  }
+  const g = kind === 'tie' ? buildTIE() : kind === 'sphere' ? buildBorgSphere() : buildHunter();
   g.position.copy(pos);
   warsGroup.add(g);
-  wars.ties.push({ g, vel: new THREE.Vector3(), cd: clock.getElapsedTime() + rnd(1, 3), evadeUntil: 0 });
+  wars.ties.push({ kind, g, hp: spec.hp, vel: new THREE.Vector3(), cd: clock.getElapsedTime() + rnd(1, 3), mcd: clock.getElapsedTime() + rnd(4, 8), evadeUntil: 0 });
 }
 
 function spawnDestroyer(x, y, z){
@@ -2873,6 +3024,29 @@ function spawnDestroyer(x, y, z){
   g.lookAt(0, y*0.5, 0);
   warsGroup.add(g);
   wars.destroyers.push({ g, hp: 50, cd: 0 });
+}
+
+function spawnCube(pos){
+  const g = buildBorgCube();
+  g.position.copy(pos);
+  warsGroup.add(g);
+  const beam = makeBeamMesh(0x51ff4a, 0.09);
+  beam.visible = false;
+  warsGroup.add(beam);
+  wars.cubes.push({ g, hp: 60, beam, phase: rnd(0, 5), glow: g.userData.glow });
+}
+
+function spawnHunterWave(n){
+  const mars = PLANETS.find(p => p.key === 'mars');
+  const mp = mars._holder.getWorldPosition(new THREE.Vector3());
+  for(let i=0;i<n;i++) spawnFighter('hunter', mp.clone().add(new THREE.Vector3(rnd(-8,8), rnd(-3,5), rnd(-8,8))));
+}
+
+function launchMissile(pos, vel0){
+  const g = buildMissileModel();
+  g.position.copy(pos);
+  warsGroup.add(g);
+  wars.missiles.push({ g, vel: vel0.clone().setLength(14), life: 26 });
 }
 
 function puffAt(pos, scale, life){
@@ -2894,11 +3068,50 @@ function spawnBolt(pos, dir, speed, mat, opts){
   (rec.friendly ? wars.pBolts : wars.eBolts).push(rec);
 }
 
+/* kill helpers, shared by bolts / beams / nukes */
+function destroyFighter(f){
+  const j = wars.ties.indexOf(f);
+  if(j < 0) return;
+  puffAt(f.g.position.clone(), 2.6, 0.5);
+  warsGroup.remove(f.g);
+  wars.ties.splice(j, 1);
+  wars.kills++;
+  if(currentTheme === 'wars') wars.tieRespawnAt.push(clock.getElapsedTime() + rnd(3, 6));
+}
+function destroyCube(c){
+  const j = wars.cubes.indexOf(c);
+  if(j < 0) return;
+  for(let k=0;k<10;k++) puffAt(c.g.position.clone().add(new THREE.Vector3(rnd(-3,3), rnd(-3,3), rnd(-3,3))), rnd(3,7), rnd(0.5,1));
+  warsGroup.remove(c.g);
+  warsGroup.remove(c.beam);
+  wars.cubes.splice(j, 1);
+  wars.kills += 10;
+}
+function destroyDestroyerRec(d){
+  const j = wars.destroyers.indexOf(d);
+  if(j < 0) return;
+  for(let k=0;k<8;k++) puffAt(d.g.position.clone().add(new THREE.Vector3(rnd(-4,4), rnd(-1,1), rnd(-4,4))), rnd(3,7), rnd(0.5,1));
+  warsGroup.remove(d.g);
+  wars.destroyers.splice(j, 1);
+  wars.kills += 5;
+}
+
+/* player weapons */
 let xwingMuzzleFlip = false;
 function firePlayerLasers(t){
-  if(t - wars.lastFire < 0.14) return;
+  const isPDC = currentTheme === 'expanse';
+  if(t - wars.lastFire < (isPDC ? 0.075 : 0.14)) return;
   wars.lastFire = t;
   const fwd = new THREE.Vector3(0,0,-1).applyEuler(ship.rotation);
+  if(isPDC){
+    for(const sx of [-0.5, 0.5]){
+      const p = new THREE.Vector3(sx, -0.1, -0.6).applyEuler(ship.rotation).add(ship.position);
+      const dir = fwd.clone();
+      dir.x += rnd(-0.012, 0.012); dir.y += rnd(-0.012, 0.012);
+      spawnBolt(p, dir.normalize(), 300, boltMatPDC, { friendly: true, inherit: true, life: 0.9 });
+    }
+    return;
+  }
   const muzzles = ship.userData.muzzles || [new THREE.Vector3(0.5,0,0), new THREE.Vector3(-0.5,0,0)];
   xwingMuzzleFlip = !xwingMuzzleFlip;
   const pair = xwingMuzzleFlip ? muzzles.slice(0,2) : muzzles.slice(2,4);
@@ -2909,13 +3122,94 @@ function firePlayerLasers(t){
 }
 
 function fireTorpedo(){
-  if(wars.torps <= 0 || wars.won) return;
+  if(wars.won) return;
+  if(currentTheme === 'expanse'){ callStrike(); return; }
+  if(wars.torps <= 0) return;
   wars.torps--;
   const fwd = new THREE.Vector3(0,0,-1).applyEuler(ship.rotation);
+  if(currentTheme === 'trek'){
+    const off = new THREE.Vector3(0, -0.35, -0.8).applyEuler(ship.rotation);
+    spawnBolt(ship.position.clone().add(off), fwd, 140, boltMatTorp, { friendly: true, torp: true, inherit: true, life: 4 });
+    return;
+  }
   for(const sx of [-0.25, 0.25]){
     const off = new THREE.Vector3(sx, -0.15, -0.5).applyEuler(ship.rotation);
     spawnBolt(ship.position.clone().add(off), fwd, 110, boltMatTorp, { friendly: true, torp: true, inherit: true, life: 5 });
   }
+}
+
+/* Earth nuke strike (Expanse) */
+function callStrike(){
+  if(wars.nukes <= 0 || !shipMode || wars.won) return;
+  // prefer the nearest target that's safely outside our own blast radius
+  let best = null, bd = Infinity, safe = null, sd = Infinity;
+  [...wars.ties, ...wars.destroyers, ...wars.cubes].forEach(e => {
+    const d = e.g.position.distanceTo(ship.position);
+    if(d < bd){ bd = d; best = e; }
+    if(d > 20 && d < sd){ sd = d; safe = e; }
+  });
+  best = safe || best;
+  if(!best) return;
+  wars.nukes--;
+  const earth = PLANETS.find(p => p.key === 'earth');
+  const from = earth._holder.getWorldPosition(new THREE.Vector3());
+  const g = buildStrikeMissile();
+  g.position.copy(from);
+  warsGroup.add(g);
+  wars.strikes.push({ g, target: best, lastPos: best.g.position.clone(), vel: new THREE.Vector3(0, 24, 0) });
+}
+
+function detonateNuke(pos, t){
+  flashEl.style.opacity = '0.9';
+  setTimeout(() => flashEl.style.opacity = '0', 280);
+  const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16),
+    new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
+  m.position.copy(pos);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1, 0.06, 8, 48),
+    new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  ring.position.copy(pos);
+  ring.lookAt(camera.position);
+  warsGroup.add(m);
+  warsGroup.add(ring);
+  wars.nukeFX.push({ m, ring, t: 0 });
+  for(let k=0;k<14;k++) puffAt(pos.clone().add(new THREE.Vector3(rnd(-4,4), rnd(-4,4), rnd(-4,4))), rnd(3,8), rnd(0.5,1.1));
+  [...wars.ties].forEach(f => { if(f.g.position.distanceTo(pos) < 13) destroyFighter(f); });
+  [...wars.destroyers].forEach(d => { if(d.g.position.distanceTo(pos) < 13) destroyDestroyerRec(d); });
+  [...wars.cubes].forEach(c => { if(c.g.position.distanceTo(pos) < 13) destroyCube(c); });
+  for(let i = wars.missiles.length-1; i >= 0; i--){
+    if(wars.missiles[i].g.position.distanceTo(pos) < 13){
+      warsGroup.remove(wars.missiles[i].g);
+      wars.missiles.splice(i, 1);
+    }
+  }
+  if(shipMode && ship.position.distanceTo(pos) < 16){
+    wars.shield -= 40;
+    wars.lastHitT = t;
+    dmgEl.style.opacity = '1';
+    if(wars.shield <= 0) playerDown(t);
+  }
+}
+
+function showBanner(title, text){
+  document.getElementById('warsBannerTitle').textContent = title;
+  document.getElementById('warsBannerText').textContent = text;
+  warsBanner.style.display = 'block';
+}
+
+function playerDown(t){
+  wars.deaths++;
+  puffAt(ship.position.clone(), 5, 0.9);
+  if(currentTheme === 'trek'){
+    const earth = PLANETS.find(p => p.key === 'earth');
+    earth._holder.getWorldPosition(ship.position);
+    ship.position.add(new THREE.Vector3(8, 4, 8));
+  } else {
+    ship.position.set(0, 4, 70);
+  }
+  shipVel.set(0, 0, 0);
+  shipYaw = 0; shipPitch = 0;
+  wars.shield = 100;
+  wars.graceUntil = t + 4;
 }
 
 function warsWin(){
@@ -2937,27 +3231,87 @@ function warsWin(){
 function resetBattle(){
   [...wars.pBolts, ...wars.eBolts].forEach(b => warsGroup.remove(b.m));
   wars.pBolts.length = 0; wars.eBolts.length = 0;
-  wars.ties.forEach(t => warsGroup.remove(t.g)); wars.ties.length = 0;
+  wars.ties.forEach(f => warsGroup.remove(f.g)); wars.ties.length = 0;
   wars.destroyers.forEach(d => warsGroup.remove(d.g)); wars.destroyers.length = 0;
+  wars.cubes.forEach(c => { warsGroup.remove(c.g); warsGroup.remove(c.beam); }); wars.cubes.length = 0;
+  wars.missiles.forEach(m => warsGroup.remove(m.g)); wars.missiles.length = 0;
+  wars.strikes.forEach(s => warsGroup.remove(s.g)); wars.strikes.length = 0;
+  wars.nukeFX.forEach(n => { warsGroup.remove(n.m); warsGroup.remove(n.ring); }); wars.nukeFX.length = 0;
   wars.puffs.forEach(p => warsGroup.remove(p.s)); wars.puffs.length = 0;
   if(wars.fireball){ scene.remove(wars.fireball.m); wars.fireball = null; }
   wars.tieRespawnAt.length = 0;
-  wars.shield = 100; wars.kills = 0; wars.torps = 6; wars.won = false;
+  phaserBeam.visible = false;
+  wars.shield = 100; wars.kills = 0; wars.won = false;
+  wars.wave = 0; wars.waveAt = 0;
   wars.graceUntil = clock.getElapsedTime() + 5;
   deathStar.visible = currentTheme === 'wars';
   warsBanner.style.display = 'none';
-  for(let i=0;i<TIE_MAX;i++) spawnTIE();
-  spawnDestroyer(38, 8, 46);
-  spawnDestroyer(-42, 10, 40);
+
+  if(currentTheme === 'wars'){
+    wars.torps = 6; wars.nukes = 0;
+    for(let i=0;i<TIE_MAX;i++) spawnFighter('tie');
+    spawnDestroyer(38, 8, 46);
+    spawnDestroyer(-42, 10, 40);
+  } else if(currentTheme === 'trek'){
+    wars.torps = 12; wars.nukes = 0;
+    const earth = PLANETS.find(p => p.key === 'earth');
+    const ep = earth._holder.getWorldPosition(new THREE.Vector3());
+    const dir = ep.clone().normalize();
+    for(let i=0;i<2;i++){
+      spawnCube(dir.clone().multiplyScalar(150 + i*28).add(new THREE.Vector3(rnd(-14,14), rnd(-4,8), rnd(-14,14))));
+    }
+    for(let i=0;i<5;i++){
+      spawnFighter('sphere', dir.clone().multiplyScalar(138).add(new THREE.Vector3(rnd(-20,20), rnd(-6,10), rnd(-20,20))));
+    }
+  } else if(currentTheme === 'expanse'){
+    wars.torps = 0; wars.nukes = 4;
+    spawnHunterWave(4);
+  }
 }
 document.getElementById('warsReset').addEventListener('click', resetBattle);
 
 const _wv = new THREE.Vector3();
+const _wv2 = new THREE.Vector3();
+
+function updatePhaser(dt, t, firing){
+  if(!firing || !shipMode || wars.won){ phaserBeam.visible = false; return; }
+  const fwd = new THREE.Vector3(0,0,-1).applyEuler(ship.rotation);
+  let best = null, bestScore = 0.86, bestKind = null;
+  const consider = (ref, kind) => {
+    const d = ref.g.position.distanceTo(ship.position);
+    if(d > 55) return;
+    const sc = _wv.copy(ref.g.position).sub(ship.position).normalize().dot(fwd);
+    if(sc > bestScore){ bestScore = sc; best = ref; bestKind = kind; }
+  };
+  wars.ties.forEach(f => consider(f, 'fighter'));
+  wars.cubes.forEach(c => consider(c, 'cube'));
+  wars.destroyers.forEach(d => consider(d, 'destroyer'));
+  const start = ship.position.clone().addScaledVector(fwd, 1.4);
+  const end = best ? best.g.position.clone() : ship.position.clone().addScaledVector(fwd, 55);
+  phaserBeam.visible = true;
+  setBeam(phaserBeam, start, end);
+  phaserBeam.material.opacity = 0.7 + Math.sin(t*40) * 0.25;
+  if(best){
+    best.hp -= 9 * dt;
+    wars.beamPuffT -= dt;
+    if(wars.beamPuffT <= 0){
+      wars.beamPuffT = 0.14;
+      puffAt(end, 1.0, 0.25);
+    }
+    if(best.hp <= 0){
+      if(bestKind === 'fighter') destroyFighter(best);
+      else if(bestKind === 'cube') destroyCube(best);
+      else destroyDestroyerRec(best);
+    }
+  }
+}
+
 function warsUpdate(dt){
   if(!warsGroup.visible) return;
   const t = clock.getElapsedTime();
+  const theme = currentTheme;
 
-  // victory fireball
+  // Death Star victory fireball (Wars)
   if(wars.fireball){
     wars.fireT += dt;
     const f = wars.fireball.m;
@@ -2968,55 +3322,85 @@ function warsUpdate(dt){
     if(wars.fireT > 1.7){
       scene.remove(f);
       wars.fireball = null;
-      warsBanner.style.display = 'block';
+      showBanner('GREAT SHOT, KID!', 'That was one in a million. The Death Star is destroyed.');
     }
   }
 
-  // port glow pulse
-  dsPortGlow.scale.setScalar(2.2 + Math.sin(t*4) * 0.7);
+  if(deathStar.visible) dsPortGlow.scale.setScalar(2.2 + Math.sin(t*4) * 0.7);
 
-  // player firing
-  if(shipMode && !wars.won && (keys.fire || touchThrust.fire)) firePlayerLasers(t);
+  // player primary weapon
+  const firing = shipMode && !wars.won && (keys.fire || touchThrust.fire);
+  if(theme === 'trek') updatePhaser(dt, t, firing);
+  else if(firing) firePlayerLasers(t);
 
-  // TIE respawns
+  // TIE respawns (Wars only)
   for(let i = wars.tieRespawnAt.length - 1; i >= 0; i--){
     if(t >= wars.tieRespawnAt[i]){
       wars.tieRespawnAt.splice(i, 1);
-      if(!wars.won && wars.ties.length < TIE_MAX) spawnTIE();
+      if(theme === 'wars' && !wars.won && wars.ties.length < TIE_MAX) spawnFighter('tie');
     }
   }
 
-  // TIE AI
-  wars.ties.forEach((tie, ti) => {
-    const P = tie.g.position;
-    const target = shipMode ? ship.position : new THREE.Vector3(0, 4, 70);
+  // fighters: TIEs, Borg spheres, MCRN hunters
+  wars.ties.forEach((f, ti) => {
+    const S = FIGHTER_SPEC[f.kind];
+    const P = f.g.position;
+    const target = shipMode ? ship.position : _wv2.set(0, 4, 70);
     const dist = P.distanceTo(target);
     let desired;
-    if(t < tie.evadeUntil){
+    if(t < f.evadeUntil){
       desired = _wv.copy(P).sub(target).normalize();
     } else {
       desired = _wv.copy(target).sub(P).normalize();
       desired.x += Math.sin(t*1.3 + ti*2.1) * 0.35;
       desired.y += Math.cos(t*1.7 + ti*1.4) * 0.25;
       desired.normalize();
-      if(dist < 7) tie.evadeUntil = t + 1.4;
+      if(dist < S.evadeAt) f.evadeUntil = t + 1.4;
     }
-    const speed = 26 + (ti % 3) * 4;
-    tie.vel.lerp(desired.multiplyScalar(speed), Math.min(1, 2.2*dt));
-    P.addScaledVector(tie.vel, dt);
-    if(P.length() < DS_R + 2) P.setLength(DS_R + 2);   // don't fly into the Death Star
-    tie.g.lookAt(P.clone().add(tie.vel));
-    // fire at the player
-    if(shipMode && !wars.won && t > wars.graceUntil && dist < 45 && t > tie.cd){
-      tie.cd = t + rnd(2.5, 5.0);
-      const lead = ship.position.clone().addScaledVector(shipVel, dist / 120 * 0.6);
+    f.vel.lerp(desired.multiplyScalar(S.speed + (ti % 3) * 3), Math.min(1, S.turn*dt));
+    P.addScaledVector(f.vel, dt);
+    if(theme === 'wars' && P.length() < DS_R + 2) P.setLength(DS_R + 2);
+    f.g.lookAt(P.clone().add(f.vel));
+    if(shipMode && !wars.won && t > wars.graceUntil && dist < S.fireDist && t > f.cd){
+      f.cd = t + rnd(S.cdMin, S.cdMax);
+      const lead = ship.position.clone().addScaledVector(shipVel, dist / S.boltSpeed * 0.6);
       const dir = lead.sub(P).normalize();
-      dir.x += rnd(-0.12, 0.12); dir.y += rnd(-0.12, 0.12);
-      spawnBolt(P.clone(), dir.normalize(), 120, boltMatGreen, { life: 2.2 });
+      dir.x += rnd(-S.spread, S.spread); dir.y += rnd(-S.spread, S.spread);
+      spawnBolt(P.clone(), dir.normalize(), S.boltSpeed, f.kind === 'hunter' ? boltMatMCR : boltMatGreen, { life: 2.2 });
+    }
+    if(S.missiles && shipMode && !wars.won && t > wars.graceUntil && dist < 75 && t > f.mcd && wars.missiles.length < 10){
+      f.mcd = t + rnd(6, 10);
+      launchMissile(P.clone(), f.vel.clone().lengthSq() > 0.1 ? f.vel.clone() : new THREE.Vector3(0,1,0));
     }
   });
 
-  // Star Destroyer turbolasers
+  // Borg cubes: crawl toward Earth, cutting beams, assimilation check
+  const earthP = PLANETS.find(p => p.key === 'earth')._holder.getWorldPosition(_wv2);
+  for(let i = wars.cubes.length - 1; i >= 0; i--){
+    const c = wars.cubes[i];
+    const dirE = _wv.copy(earthP).sub(c.g.position).normalize();
+    c.g.position.addScaledVector(dirE, 3.2 * dt);
+    c.g.rotation.y += 0.12 * dt;
+    c.g.rotation.x += 0.05 * dt;
+    if(c.glow) c.glow.material.opacity = 0.45 + Math.sin(t*2.4 + c.phase) * 0.25;
+    const pd = shipMode ? c.g.position.distanceTo(ship.position) : 1e9;
+    const beamOn = shipMode && !wars.won && t > wars.graceUntil && pd < 48 && ((t + c.phase) % 5) < 1.6;
+    c.beam.visible = beamOn;
+    if(beamOn){
+      setBeam(c.beam, c.g.position, ship.position);
+      c.beam.material.opacity = 0.6 + Math.sin(t*30) * 0.3;
+      wars.shield -= 6 * dt;
+      wars.lastHitT = t;
+      if(Math.random() < 5*dt) dmgEl.style.opacity = '0.5';
+      if(wars.shield <= 0) playerDown(t);
+    }
+    if(!wars.won && c.g.position.distanceTo(earthP) < 5){
+      wars.won = true;
+      showBanner('EARTH HAS BEEN ASSIMILATED', 'Resistance was futile. Reset the battle and hold the line at the belt next time.');
+    }
+  }
+
+  // Star Destroyer turbolasers (Wars)
   wars.destroyers.forEach(d => {
     if(shipMode && !wars.won && t > wars.graceUntil && t > d.cd && d.g.position.distanceTo(ship.position) < 150){
       d.cd = t + rnd(2.5, 4.0);
@@ -3027,6 +3411,61 @@ function warsUpdate(dt){
     }
   });
 
+  // guided MCRN missiles hunting the player
+  for(let i = wars.missiles.length - 1; i >= 0; i--){
+    const m = wars.missiles[i];
+    if(shipMode && !wars.won){
+      const desired = _wv.copy(ship.position).sub(m.g.position).normalize().multiplyScalar(36);
+      m.vel.lerp(desired, Math.min(1, 1.3*dt));
+    }
+    m.g.position.addScaledVector(m.vel, dt);
+    m.g.lookAt(m.g.position.clone().add(m.vel));
+    m.life -= dt;
+    let dead = m.life <= 0;
+    if(!dead && shipMode && m.g.position.distanceTo(ship.position) < 1.7){
+      wars.shield -= 20;
+      wars.lastHitT = t;
+      dmgEl.style.opacity = '1';
+      puffAt(ship.position.clone(), 2.6, 0.5);
+      dead = true;
+      if(wars.shield <= 0) playerDown(t);
+    }
+    if(dead){ warsGroup.remove(m.g); wars.missiles.splice(i, 1); }
+  }
+
+  // Earth strike missiles → nuclear detonation
+  for(let i = wars.strikes.length - 1; i >= 0; i--){
+    const s = wars.strikes[i];
+    if(s.target && s.target.g.parent) s.lastPos.copy(s.target.g.position);
+    const toT = _wv.copy(s.lastPos).sub(s.g.position);
+    const distT = toT.length();
+    s.vel.lerp(toT.normalize().multiplyScalar(60), Math.min(1, 2.5*dt));
+    s.g.position.addScaledVector(s.vel, dt);
+    s.g.lookAt(s.g.position.clone().add(s.vel));
+    if(distT < 3){
+      detonateNuke(s.g.position.clone(), t);
+      warsGroup.remove(s.g);
+      wars.strikes.splice(i, 1);
+    }
+  }
+
+  // nuke fireballs + shockwave rings
+  for(let i = wars.nukeFX.length - 1; i >= 0; i--){
+    const n = wars.nukeFX[i];
+    n.t += dt;
+    const k = n.t / 1.4;
+    const sc = 1 + k * 26;
+    n.m.scale.set(sc, sc, sc);
+    n.m.material.opacity = Math.max(0, 0.95 * (1 - k));
+    n.ring.scale.setScalar(1 + k * 46);
+    n.ring.material.opacity = Math.max(0, 0.7 * (1 - k));
+    if(k >= 1){
+      warsGroup.remove(n.m);
+      warsGroup.remove(n.ring);
+      wars.nukeFX.splice(i, 1);
+    }
+  }
+
   // player bolts: move + collide
   const portWorld = PORT_POS;
   for(let i = wars.pBolts.length - 1; i >= 0; i--){
@@ -3034,55 +3473,68 @@ function warsUpdate(dt){
     b.m.position.addScaledVector(b.vel, dt);
     b.life -= dt;
     let dead = b.life <= 0;
-    if(!dead){
-      // torpedo → exhaust port
+    if(!dead && theme === 'wars'){
       if(b.torp && deathStar.visible && b.m.position.distanceTo(portWorld) < 2.3){
         warsWin();
         puffAt(portWorld.clone(), 5, 0.8);
         dead = true;
-      }
-      // hit the Death Star hull
-      else if(deathStar.visible && b.m.position.length() < DS_R + 0.4){
+      } else if(deathStar.visible && b.m.position.length() < DS_R + 0.4){
         puffAt(b.m.position.clone().setLength(DS_R + 0.3), b.torp ? 3.4 : 1.2, 0.4);
         dead = true;
       }
-      // hit a TIE
-      if(!dead){
-        for(let j = wars.ties.length - 1; j >= 0; j--){
-          if(b.m.position.distanceTo(wars.ties[j].g.position) < 1.5){
-            puffAt(wars.ties[j].g.position, 2.6, 0.5);
-            warsGroup.remove(wars.ties[j].g);
-            wars.ties.splice(j, 1);
-            wars.kills++;
-            wars.tieRespawnAt.push(t + rnd(3, 6));
-            dead = true;
-            break;
-          }
+    }
+    if(!dead){
+      for(let j = wars.ties.length - 1; j >= 0; j--){
+        const f = wars.ties[j];
+        if(b.m.position.distanceTo(f.g.position) < FIGHTER_SPEC[f.kind].r){
+          f.hp -= b.torp ? 12 : 1;
+          puffAt(b.m.position.clone(), 1.1, 0.3);
+          if(f.hp <= 0) destroyFighter(f);
+          dead = true;
+          break;
         }
       }
-      // hit a destroyer
-      if(!dead){
-        for(let j = wars.destroyers.length - 1; j >= 0; j--){
-          const d = wars.destroyers[j];
-          if(b.m.position.distanceTo(d.g.position) < 5.2){
-            d.hp -= b.torp ? 12 : 1;
-            puffAt(b.m.position.clone(), b.torp ? 3 : 1, 0.35);
-            if(d.hp <= 0){
-              for(let k=0;k<8;k++) puffAt(d.g.position.clone().add(new THREE.Vector3(rnd(-4,4), rnd(-1,1), rnd(-4,4))), rnd(3,7), rnd(0.5,1));
-              warsGroup.remove(d.g);
-              wars.destroyers.splice(j, 1);
-              wars.kills += 5;
-            }
-            dead = true;
-            break;
-          }
+    }
+    if(!dead){
+      for(let j = wars.cubes.length - 1; j >= 0; j--){
+        const c = wars.cubes[j];
+        if(b.m.position.distanceTo(c.g.position) < 4.6){
+          c.hp -= b.torp ? 12 : 1;
+          puffAt(b.m.position.clone(), b.torp ? 3 : 1.2, 0.35);
+          if(c.hp <= 0) destroyCube(c);
+          dead = true;
+          break;
+        }
+      }
+    }
+    if(!dead){
+      for(let j = wars.missiles.length - 1; j >= 0; j--){
+        if(b.m.position.distanceTo(wars.missiles[j].g.position) < 1.1){
+          puffAt(wars.missiles[j].g.position.clone(), 1.8, 0.4);
+          warsGroup.remove(wars.missiles[j].g);
+          wars.missiles.splice(j, 1);
+          wars.kills++;
+          dead = true;
+          break;
+        }
+      }
+    }
+    if(!dead){
+      for(let j = wars.destroyers.length - 1; j >= 0; j--){
+        const d = wars.destroyers[j];
+        if(b.m.position.distanceTo(d.g.position) < 5.2){
+          d.hp -= b.torp ? 12 : 1;
+          puffAt(b.m.position.clone(), b.torp ? 3 : 1, 0.35);
+          if(d.hp <= 0) destroyDestroyerRec(d);
+          dead = true;
+          break;
         }
       }
     }
     if(dead){ warsGroup.remove(b.m); wars.pBolts.splice(i, 1); }
   }
 
-  // enemy bolts: move + hit player
+  // enemy bolts vs player
   for(let i = wars.eBolts.length - 1; i >= 0; i--){
     const b = wars.eBolts[i];
     b.m.position.addScaledVector(b.vel, dt);
@@ -3094,16 +3546,7 @@ function warsUpdate(dt){
       dmgEl.style.opacity = '0.85';
       puffAt(ship.position.clone(), 1.6, 0.3);
       dead = true;
-      if(wars.shield <= 0){
-        // ship lost — back to the fleet
-        wars.deaths++;
-        puffAt(ship.position.clone(), 5, 0.9);
-        ship.position.set(0, 4, 70);
-        shipVel.set(0, 0, 0);
-        shipYaw = 0; shipPitch = 0;
-        wars.shield = 100;
-        wars.graceUntil = t + 4;
-      }
+      if(wars.shield <= 0) playerDown(t);
     }
     if(dead){ warsGroup.remove(b.m); wars.eBolts.splice(i, 1); }
   }
@@ -3124,15 +3567,46 @@ function warsUpdate(dt){
     if(k >= 1){ warsGroup.remove(p.s); wars.puffs.splice(i, 1); }
   }
 
+  // Trek victory / Expanse waves
+  if(theme === 'trek' && !wars.won && wars.cubes.length === 0 && wars.ties.length === 0){
+    wars.won = true;
+    showBanner('INVASION REPELLED', 'The Borg fleet is destroyed. Earth is safe — this time.');
+  }
+  if(theme === 'expanse' && !wars.won){
+    if(wars.ties.length === 0 && !wars.waveAt) wars.waveAt = t + 6;
+    if(wars.waveAt && t > wars.waveAt){
+      wars.waveAt = 0;
+      wars.wave++;
+      wars.nukes = Math.min(4, wars.nukes + 1);
+      spawnHunterWave(Math.min(4 + wars.wave, 8));
+    }
+  }
+
   // HUD
   if(shipMode){
     hudShield.textContent = Math.max(0, Math.round(wars.shield)) + '%';
     hudShield.style.color = wars.shield < 30 ? '#ff5040' : '';
-    hudTorps.textContent = String(wars.torps);
+    hudTorps.textContent = theme === 'expanse' ? String(wars.nukes) : String(wars.torps);
     hudKills.textContent = String(wars.kills);
-    const pd = ship.position.distanceTo(portWorld);
-    hudPort.textContent = wars.won ? 'DESTROYED' : (pd * 12).toFixed(0) + ' km';
-    hudPort.style.color = (!wars.won && pd < 25) ? '#ffd54a' : '';
+    if(theme === 'wars'){
+      const pd = ship.position.distanceTo(portWorld);
+      hudPort.textContent = wars.won ? 'DESTROYED' : (pd * 12).toFixed(0) + ' km';
+      hudPort.style.color = (!wars.won && pd < 25) ? '#ffd54a' : '';
+    } else if(theme === 'trek'){
+      let md = Infinity;
+      wars.cubes.forEach(c => { md = Math.min(md, c.g.position.distanceTo(earthP)); });
+      hudPort.textContent = wars.cubes.length ? (md * 3).toFixed(0) + ' Mm' : 'SAFE';
+      hudPort.style.color = (wars.cubes.length && md < 30) ? '#ff5040' : '';
+    } else {
+      if(wars.strikes.length){
+        const s = wars.strikes[0];
+        hudPort.textContent = 'ETA ' + Math.max(1, s.g.position.distanceTo(s.lastPos) / 60).toFixed(0) + 's';
+        hudPort.style.color = '#ffd54a';
+      } else {
+        hudPort.textContent = wars.nukes > 0 ? 'READY ×' + wars.nukes : 'DEPLETED';
+        hudPort.style.color = '';
+      }
+    }
   }
 }
 
@@ -3141,7 +3615,8 @@ function warsUpdate(dt){
 --------------------------------------------------------------------- */
 function applyTheme(id){
   currentTheme = id;
-  document.body.className = id === 'expanse' ? '' : 'theme-' + id;
+  ['theme-expanse','theme-trek','theme-wars','theme-neon','theme-retro','theme-chaos'].forEach(c => document.body.classList.remove(c));
+  document.body.classList.add('theme-' + id);
   const T = THEMES[id];
   document.getElementById('titleMain').textContent = T.title;
   document.getElementById('titleSub').textContent = T.sub;
@@ -3170,14 +3645,22 @@ function applyTheme(id){
   rainbowStars.visible = !!T.nebulas;
 
   const isWars = id === 'wars';
+  const isCombat = !!COMBAT_THEMES[id];
   sunGroup.visible = !isWars;
   deathStar.visible = isWars;
   warsLight.visible = isWars;
-  warsGroup.visible = isWars;
-  if(isWars) resetBattle();
+  warsGroup.visible = isCombat;
+  if(isCombat) resetBattle();
   else warsBanner.style.display = 'none';
+  document.getElementById('hudTorpsK').textContent = id === 'trek' ? 'Photons' : id === 'expanse' ? 'Nukes' : 'Torps';
+  document.getElementById('hudPortK').textContent = id === 'trek' ? 'Earth' : id === 'expanse' ? 'Strike' : 'Port';
+  document.getElementById('btnTorp').innerHTML = id === 'trek' ? '◎ Photon' : id === 'expanse' ? '☢ Nuke' : '◎ Torpedo';
   steerHint.innerHTML = isWars
     ? 'Drag: steer<br>↑/W burn · SPACE: fire lasers<br>T: torpedo · X: flip&amp;burn<br>Hit the glowing exhaust port!'
+    : id === 'trek'
+    ? 'Drag: steer<br>↑/W burn · SPACE: phasers<br>T: photon torpedo · X: flip&amp;burn<br>Stop the cubes before Earth!'
+    : id === 'expanse'
+    ? 'Drag: steer<br>↑/W burn · SPACE: PDCs<br>T: ☢ nuke strike from Earth<br>MCRN hunters inbound from Mars'
     : 'Drag: steer<br>↑/W burn · ↓/S retro<br>Shift: epstein · Space: flip&amp;burn<br>Wheel/pinch: camera';
 
   const oldShip = ship;
