@@ -1,0 +1,294 @@
+<title>The LLM Universe — Phone to Frontier Leaderboard</title>
+<style>
+  :root{
+    --bg:#0b0b13; --surface:#10101a; --panel:#14141f;
+    --ink:#f2f1ec; --ink-2:#a5a4b0; --ink-3:#6b6a78;
+    --grid:#22222e; --baseline:#33334a; --ring:rgba(255,255,255,.10);
+    --moon:#3987e5; --planet:#199e70; --dwarf:#c98500; --giant:#9085e9; --super:#e66767;
+    --dwarf-bright:#ffd166; --you:#f2f1ec;
+    --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;overflow-x:hidden}
+  #stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+  .wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:40px 20px 80px}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--dwarf-bright)}
+  h1{font-size:clamp(28px,5.4vw,52px);line-height:1.05;margin:10px 0 14px;font-weight:800;letter-spacing:-.02em;text-wrap:balance}
+  h1 .dim{color:var(--ink-3);font-weight:600}
+  .sub{max-width:62ch;color:var(--ink-2);margin:0 0 8px;font-size:15.5px}
+  .sub b{color:var(--ink)}
+  .asof{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.06em}
+
+  .legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:26px 0 10px;align-items:center}
+  .lg{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);font-family:var(--mono);letter-spacing:.04em}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none;box-shadow:0 0 8px 0 currentColor}
+  .lg small{color:var(--ink-3)}
+
+  .chart-card{background:linear-gradient(180deg,var(--surface),#0d0d16);border:1px solid var(--ring);border-radius:14px;padding:14px 10px 6px;overflow-x:auto}
+  .chart-inner{min-width:720px}
+  svg text{font-family:var(--mono)}
+
+  .you-panel{display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px;background:var(--panel);border:1px solid var(--ring);border-radius:14px;padding:16px 20px;margin:18px 0 8px}
+  .you-panel .label{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2)}
+  .you-panel input[type=range]{flex:1 1 220px;accent-color:var(--dwarf-bright);min-width:160px}
+  .you-panel input[type=number]{width:74px;background:var(--bg);border:1px solid var(--baseline);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:16px;padding:6px 8px;text-align:center}
+  #rankline{font-size:14.5px;color:var(--ink-2);flex-basis:100%}
+  #rankline b{color:var(--dwarf-bright);font-family:var(--mono)}
+
+  .callout{display:flex;gap:14px;align-items:flex-start;border:1px solid rgba(201,133,0,.45);background:rgba(201,133,0,.08);border-radius:14px;padding:16px 18px;margin:26px 0}
+  .callout .star{font-size:26px;line-height:1;filter:drop-shadow(0 0 6px rgba(255,209,102,.8))}
+  .callout p{margin:0;font-size:14px;color:var(--ink-2);max-width:75ch}
+  .callout b{color:var(--dwarf-bright)}
+
+  h2{font-size:20px;margin:44px 0 4px;letter-spacing:-.01em}
+  .h2sub{color:var(--ink-3);font-size:13px;margin:0 0 16px}
+  .tablewrap{overflow-x:auto;border:1px solid var(--ring);border-radius:14px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:12px 14px;border-bottom:1px solid var(--baseline)}
+  td{padding:10px 14px;border-bottom:1px solid var(--grid);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+  td.rank{font-family:var(--mono);color:var(--ink-3);width:44px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;padding:3px 9px;border-radius:999px;border:1px solid var(--ring);white-space:nowrap}
+  .chip .dot{width:7px;height:7px;box-shadow:none}
+  .mname{font-weight:650}
+  .morg{color:var(--ink-3);font-size:11.5px;font-family:var(--mono)}
+  tr.you-row{background:rgba(255,209,102,.07)}
+  tr.you-row td{border-top:1px solid rgba(255,209,102,.4);border-bottom:1px solid rgba(255,209,102,.4)}
+  .open-tag{font-family:var(--mono);font-size:10.5px;color:var(--planet)}
+  .closed-tag{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+
+  .foot{margin-top:40px;color:var(--ink-3);font-size:12.5px;max-width:80ch}
+  .foot a{color:var(--ink-2)}
+  .foot ul{margin:6px 0 0;padding-left:18px}
+
+  #tip{position:fixed;z-index:10;pointer-events:none;background:#1b1b28;border:1px solid var(--ring);border-radius:10px;padding:10px 12px;font-size:12.5px;max-width:280px;opacity:0;transition:opacity .12s;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  #tip .t-name{font-weight:700;margin-bottom:2px}
+  #tip .t-row{display:flex;justify-content:space-between;gap:16px;color:var(--ink-2);font-family:var(--mono);font-size:11.5px}
+  #tip .t-note{color:var(--ink-3);margin-top:4px;font-size:11.5px}
+  @media (prefers-reduced-motion: reduce){ .pulse{animation:none !important} }
+  @keyframes pulse{0%,100%{opacity:.9}50%{opacity:.35}}
+  .pulse{animation:pulse 2.4s ease-in-out infinite}
+</style>
+
+<canvas id="stars" aria-hidden="true"></canvas>
+<div class="wrap">
+  <div class="eyebrow">Pocket &rarr; Frontier &middot; A Field Guide</div>
+  <h1>The LLM Universe <span class="dim">/ phone-base leaderboard</span></h1>
+  <p class="sub">Every body on this map is a language model, placed by the <b>memory it needs to run</b> (left: fits on your phone, right: cloud-only frontier) and ranked by the <b>Artificial Analysis Intelligence Index</b>. Moons run on a flagship phone, Dwarf Stars on a 128&thinsp;GB Mac or DGX Spark, Supergiants only in a datacenter.</p>
+  <p class="asof">DATA SNAPSHOT &middot; JULY 2026 &middot; ~ = estimated &middot; hover any body for details</p>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="chart-card"><div class="chart-inner" id="chart"></div></div>
+
+  <div class="you-panel">
+    <span class="label">Your score</span>
+    <input type="range" id="youRange" min="0" max="65" step="1" value="40" aria-label="Your intelligence index score">
+    <input type="number" id="youNum" min="0" max="65" step="1" value="40" aria-label="Your score (number)">
+    <div id="rankline"></div>
+  </div>
+
+  <div class="callout">
+    <div class="star">&#11088;</div>
+    <p><b>The Dwarf Star range (128&thinsp;GB).</b> <b>DeepSeek&nbsp;V4&nbsp;Flash</b> is a 284B-parameter MoE (13B active) that normally needs ~568&thinsp;GB &mdash; but <b>DwarfStar&nbsp;4 (ds4)</b>, the inference engine by Salvatore &ldquo;antirez&rdquo; Sanfilippo (creator of Redis), squeezes it to <b>~81&thinsp;GB</b> with asymmetric 2-bit/8-bit selective quantization. Result: near-frontier intelligence (index 37) running locally on a 128&thinsp;GB MacBook M4&nbsp;Max or NVIDIA DGX&nbsp;Spark, with 250K-token context demonstrated even on 96&thinsp;GB.</p>
+  </div>
+
+  <h2>Full rankings</h2>
+  <p class="h2sub">Sorted by Artificial Analysis Intelligence Index &middot; your score is inserted where it lands</p>
+  <div class="tablewrap"><table id="ranktable" aria-label="LLM leaderboard rankings">
+    <thead><tr><th>#</th><th>Model</th><th>Class</th><th style="text-align:right">Index</th><th style="text-align:right">Min RAM</th><th>Weights</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+
+  <div class="foot">
+    <p><b style="color:var(--ink-2)">Notes.</b> Scores are the Artificial Analysis Intelligence Index (0&ndash;70 scale, July 2026 snapshot); values marked ~ are estimates interpolated from adjacent published results, since sources disagree across snapshots and reasoning modes. Min RAM is the approximate unified memory to run a ~4-bit quant with usable context. Frontier models are API-only, so their memory footprint is unpublished &mdash; they live in the Cloud zone.</p>
+    <p><b style="color:var(--ink-2)">Sources.</b></p>
+    <ul>
+      <li><a href="https://artificialanalysis.ai/leaderboards/models">Artificial Analysis — LLM Leaderboard</a> &middot; <a href="https://benchlm.ai/benchmarks/artificialAnalysis">BenchLM — AA Index, July 2026</a></li>
+      <li><a href="https://tech-insider.org/glm-5-2-vs-deepseek-v4-vs-kimi-k2-2026/">GLM-5.2 vs DeepSeek V4 vs Kimi K2.6</a> &middot; <a href="https://emergent.sh/learn/glm-5-2-vs-deepseek-v4-pro">GLM 5.2 vs DeepSeek V4 Pro</a> &middot; <a href="https://deepinfra.com/blog/deepseek-v4-flash-vs-qwen3-6-vs-glm-4-6">DeepSeek V4 Flash vs Qwen3.6</a></li>
+      <li><a href="https://github.com/antirez/ds4">antirez/ds4 — DwarfStar 4</a> &middot; <a href="https://gigazine.net/gsc_news/en/20260515-dwarfstar-4/">DwarfStar 4 (Gigazine)</a> &middot; <a href="https://www.mindstudio.ai/blog/run-deepseek-v4-flash-locally-dwarf-star-macbook">Running V4 Flash locally with DwarfStar</a></li>
+      <li><a href="https://x.com/ArtificialAnlys/status/2043929874537296026">AA — sub-32B models reach GPT-5-level (Qwen3.5 27B, Gemma 4 31B)</a> &middot; <a href="https://felloai.com/best-ai-models/">Best AI models, July 2026</a></li>
+    </ul>
+  </div>
+</div>
+<div id="tip" role="status"></div>
+
+<script>
+'use strict';
+/* ---------- data ---------- */
+const TIERS = {
+  super:  {label:'Supergiant', sub:'frontier · cloud only',   color:'#e66767', icon:'☀'},
+  giant:  {label:'Giant',      sub:'open · multi-GPU rig',    color:'#9085e9', icon:'🌟'},
+  dwarf:  {label:'Dwarf Star', sub:'128 GB class',            color:'#c98500', icon:'⭐'},
+  planet: {label:'Planet',     sub:'16–32 GB laptop',         color:'#199e70', icon:'🪐'},
+  moon:   {label:'Moon',       sub:'≤16 GB · runs on phones', color:'#3987e5', icon:'🌙'},
+};
+// mem = approx GB of unified memory needed (null = cloud only). est marks estimated index scores.
+const MODELS = [
+  {name:'Claude Opus 4.8',   org:'Anthropic', score:61, tier:'super', open:false, note:'#1 overall · SWE-bench Pro 69.2%'},
+  {name:'GPT-5.5',           org:'OpenAI',    score:59, tier:'super', open:false, note:'xhigh reasoning mode'},
+  {name:'Gemini 3.1 Pro',    org:'Google',    score:57, tier:'super', open:false, note:'strongest in coding-arena play'},
+  {name:'Grok 4.3',          org:'xAI',       score:55, est:true, tier:'super', open:false},
+  {name:'GLM-5.2',           org:'Z.AI',      score:51, tier:'giant', open:true, mem:420, params:'744B MoE · 40B active', note:'Top open weights. SWE-bench Pro 62.1%, AIME 99.2'},
+  {name:'Qwen3.7 Max',       org:'Alibaba',   score:46, est:true, tier:'giant', open:true, mem:500, note:'highest-ranked Chinese model on arena boards'},
+  {name:'DeepSeek V4 Pro',   org:'DeepSeek',  score:44, tier:'giant', open:true, mem:700, note:'LiveCodeBench 93.5% — best of any model'},
+  {name:'MiniMax M3',        org:'MiniMax',   score:44, tier:'giant', open:true, mem:250},
+  {name:'Kimi K2.6',         org:'Moonshot',  score:43, tier:'giant', open:true, mem:600},
+  {name:'MiniMax M2.7',      org:'MiniMax',   score:38, tier:'dwarf', open:true, mem:125},
+  {name:'DeepSeek V4 Flash', org:'DeepSeek',  score:37, tier:'dwarf', open:true, mem:81, params:'284B MoE · 13B active', note:'⭐ ~81 GB via DwarfStar 4 (ds4) selective quant — runs on a 128 GB Mac / DGX Spark', hero:true},
+  {name:'gpt-oss-120b',      org:'OpenAI',    score:26, est:true, tier:'dwarf', open:true, mem:61},
+  {name:'Qwen3.5 27B',       org:'Alibaba',   score:42, tier:'planet', open:true, mem:17, note:'GPT-5 (medium)-level in a sub-32B model'},
+  {name:'Gemma 4 31B',       org:'Google',    score:39, tier:'planet', open:true, mem:19, note:'matches GPT-5 (low)'},
+  {name:'Qwen3.6 35B A3B',   org:'Alibaba',   score:33, tier:'planet', open:true, mem:20, params:'35B MoE · 3B active'},
+  {name:'gpt-oss-20b',       org:'OpenAI',    score:21, est:true, tier:'moon', open:true, mem:12, note:'fits a 16 GB flagship phone or any laptop'},
+  {name:'Gemma 4 E4B',       org:'Google',    score:19, tier:'moon', open:true, mem:4, note:'built for phones (Matformer)'},
+  {name:'Qwen3 8B',          org:'Alibaba',   score:17, est:true, tier:'moon', open:true, mem:5},
+  {name:'Qwen3 4B',          org:'Alibaba',   score:16, est:true, tier:'moon', open:true, mem:2.5},
+  {name:'Gemma 4 E2B',       org:'Google',    score:15, tier:'moon', open:true, mem:2, params:'5.1B · 2.3B active'},
+  {name:'Llama 3.2 3B',      org:'Meta',      score:9,  est:true, tier:'moon', open:true, mem:2},
+];
+
+/* ---------- starfield ---------- */
+(function(){
+  const c=document.getElementById('stars'),x=c.getContext('2d');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let stars=[];
+  function size(){c.width=innerWidth;c.height=innerHeight;
+    stars=Array.from({length:Math.min(180,innerWidth/6)},()=>({
+      x:Math.random()*c.width,y:Math.random()*c.height,
+      r:Math.random()*1.1+.2,p:Math.random()*Math.PI*2,s:.5+Math.random()}));
+    draw(0);}
+  function draw(t){x.clearRect(0,0,c.width,c.height);
+    for(const st of stars){const a=reduce?.5:.25+.45*(.5+.5*Math.sin(st.p+t*.0006*st.s));
+      x.globalAlpha=a;x.fillStyle='#cdd3ff';x.beginPath();x.arc(st.x,st.y,st.r,0,7);x.fill();}
+    x.globalAlpha=1;}
+  addEventListener('resize',size);size();
+  if(!reduce)(function loop(t){draw(t);requestAnimationFrame(loop)})(0);
+})();
+
+/* ---------- legend ---------- */
+document.getElementById('legend').innerHTML=Object.values(TIERS).map(t=>
+  `<span class="lg" style="color:${t.color}"><span class="dot" style="background:${t.color}"></span>
+   <span style="color:var(--ink)">${t.icon} ${t.label}</span> <small>${t.sub}</small></span>`).join('');
+
+/* ---------- chart ---------- */
+const W=980,H=560,M={l:56,r:16,t:26,b:52};
+const PW=W-M.l-M.r, PH=H-M.t-M.b;
+const CLOUD_X0=M.l+PW*0.84;                 // cloud zone starts here
+const LOG0=Math.log10(1.6),LOG1=Math.log10(1000);
+const xMem=g=>M.l+(Math.log10(g)-LOG0)/(LOG1-LOG0)*(CLOUD_X0-M.l);
+const yScore=s=>M.t+PH-(s/65)*PH;
+const bands=[ // [gbFrom,gbTo,tier]
+  {x0:M.l,x1:xMem(16),tier:'moon'},{x0:xMem(16),x1:xMem(32),tier:'planet'},
+  {x0:xMem(32),x1:xMem(160),tier:'dwarf'},{x0:xMem(160),x1:CLOUD_X0,tier:'giant'},
+  {x0:CLOUD_X0,x1:W-M.r,tier:'super'}];
+
+let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Scatter chart of LLMs: memory needed versus intelligence index">`;
+// tier bands
+for(const b of bands){const c=TIERS[b.tier].color;
+  svg+=`<rect x="${b.x0}" y="${M.t}" width="${b.x1-b.x0}" height="${PH}" fill="${c}" opacity="0.05"/>`;
+  svg+=`<text x="${(b.x0+b.x1)/2}" y="${M.t+16}" text-anchor="middle" font-size="11" fill="${c}" opacity="0.9">${TIERS[b.tier].icon} ${TIERS[b.tier].label.toUpperCase()}${b.tier==='super'?' · CLOUD':''}</text>`;}
+// y grid
+for(let s=0;s<=60;s+=10){const y=yScore(s);
+  svg+=`<line x1="${M.l}" y1="${y}" x2="${W-M.r}" y2="${y}" stroke="#22222e" stroke-width="1"/>`;
+  svg+=`<text x="${M.l-8}" y="${y+4}" text-anchor="end" font-size="10.5" fill="#6b6a78">${s}</text>`;}
+// x ticks
+for(const g of [2,4,8,16,32,64,128,256,512]){const x=xMem(g);
+  svg+=`<line x1="${x}" y1="${M.t+PH}" x2="${x}" y2="${M.t+PH+5}" stroke="#33334a"/>`;
+  svg+=`<text x="${x}" y="${M.t+PH+19}" text-anchor="middle" font-size="10.5" fill="#6b6a78">${g}</text>`;}
+svg+=`<text x="${(CLOUD_X0+W-M.r)/2}" y="${M.t+PH+19}" text-anchor="middle" font-size="10.5" fill="#6b6a78">cloud</text>`;
+svg+=`<text x="${M.l+(CLOUD_X0-M.l)/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="#a5a4b0">MEMORY TO RUN — GB, log scale</text>`;
+svg+=`<text x="16" y="${M.t+PH/2}" transform="rotate(-90 16 ${M.t+PH/2})" text-anchor="middle" font-size="11" fill="#a5a4b0">INTELLIGENCE INDEX</text>`;
+svg+=`<line x1="${M.l}" y1="${M.t+PH}" x2="${W-M.r}" y2="${M.t+PH}" stroke="#33334a" stroke-width="1"/>`;
+// your-score line (updated by JS)
+svg+=`<g id="youG"><line id="youLine" x1="${M.l}" x2="${W-M.r}" stroke="#f2f1ec" stroke-width="1.5" stroke-dasharray="7 6" opacity="0.85"/>
+<text id="youLabel" x="${M.l+6}" text-anchor="start" font-size="11" fill="#ffd166" font-weight="bold"></text></g>`;
+
+// place cloud-zone models spread within the band
+const cloudModels=MODELS.filter(m=>!m.mem);
+cloudModels.forEach((m,i)=>{m._x=CLOUD_X0+((i+0.5)/cloudModels.length)*(W-M.r-CLOUD_X0-8)+4;});
+MODELS.forEach(m=>{if(m.mem)m._x=xMem(m.mem); m._y=yScore(m.score);});
+// label side overrides to dodge collisions
+// [dx, dy, anchor] — supergiants label to the LEFT of the dot (stacked by score, no collisions)
+const LAB={'GPT-5.5':[-14,4,'end'],'Gemini 3.1 Pro':[-14,4,'end'],'Grok 4.3':[-14,4,'end'],'Claude Opus 4.8':[-14,4,'end'],
+ 'GLM-5.2':[0,-12],'Qwen3.7 Max':[-8,-12],'DeepSeek V4 Pro':[16,4,'start'],'MiniMax M3':[-14,-12],'Kimi K2.6':[14,20],
+ 'MiniMax M2.7':[18,-18],'DeepSeek V4 Flash':[8,22],'gpt-oss-120b':[0,-12],
+ 'Qwen3.5 27B':[6,-12],'Gemma 4 31B':[14,20],'Qwen3.6 35B A3B':[10,-12],
+ 'gpt-oss-20b':[0,-12],'Gemma 4 E4B':[-6,-12],'Qwen3 8B':[16,18],'Qwen3 4B':[-12,-12],'Gemma 4 E2B':[8,20],'Llama 3.2 3B':[0,-12]};
+for(const m of MODELS){
+  const c=TIERS[m.tier].color, r=m.hero?11:(m.tier==='super'?9:m.tier==='giant'?8.5:m.tier==='dwarf'?8:m.tier==='planet'?7:6);
+  const idx=MODELS.indexOf(m);
+  svg+=`<g class="node" data-i="${idx}" style="cursor:pointer">`;
+  svg+=`<circle cx="${m._x}" cy="${m._y}" r="${r+9}" fill="transparent"/>`; // hit target
+  svg+=`<circle cx="${m._x}" cy="${m._y}" r="${r+3.5}" fill="${c}" opacity="0.18"${m.hero?' class="pulse"':''}/>`;
+  svg+=`<circle cx="${m._x}" cy="${m._y}" r="${r}" fill="${c}" stroke="#10101a" stroke-width="2"/>`;
+  if(m.hero) svg+=`<text x="${m._x}" y="${m._y+4}" text-anchor="middle" font-size="11" fill="#0b0b13" font-weight="bold">★</text>`;
+  const [dx,dy,anchor]=LAB[m.name]||[0,-11];
+  svg+=`<text x="${m._x+dx}" y="${m._y+dy}" text-anchor="${anchor||'middle'}" font-size="10.5" fill="#c9c8d4">${m.name}${m.est?' ~':''}</text>`;
+  svg+=`</g>`;
+}
+svg+=`</svg>`;
+document.getElementById('chart').innerHTML=svg;
+
+/* ---------- tooltip ---------- */
+const tip=document.getElementById('tip');
+document.querySelectorAll('.node').forEach(n=>{
+  const m=MODELS[+n.dataset.i], t=TIERS[m.tier];
+  n.addEventListener('mousemove',e=>{
+    tip.innerHTML=`<div class="t-name" style="color:${t.color}">${t.icon} ${m.name}</div>
+      <div class="t-row"><span>index</span><b>${m.est?'~':''}${m.score}</b></div>
+      <div class="t-row"><span>memory</span><b>${m.mem?('~'+m.mem+' GB'):'cloud only'}</b></div>
+      <div class="t-row"><span>weights</span><b>${m.open?'open':'closed'}</b></div>
+      ${m.params?`<div class="t-row"><span>size</span><b>${m.params}</b></div>`:''}
+      ${m.note?`<div class="t-note">${m.note}</div>`:''}`;
+    tip.style.opacity=1;
+    const tw=tip.offsetWidth;
+    tip.style.left=Math.min(innerWidth-tw-12,e.clientX+14)+'px';
+    tip.style.top=(e.clientY+14)+'px';});
+  n.addEventListener('mouseleave',()=>tip.style.opacity=0);
+});
+
+/* ---------- your score: rank line + table ---------- */
+const range=document.getElementById('youRange'),num=document.getElementById('youNum');
+function render(you){
+  you=Math.max(0,Math.min(65,you|0)); range.value=you; num.value=you;
+  const y=yScore(you);
+  const yl=document.getElementById('youLine'),yt=document.getElementById('youLabel');
+  yl.setAttribute('y1',y);yl.setAttribute('y2',y);
+  yt.setAttribute('y',y-6);
+  const sorted=[...MODELS].sort((a,b)=>b.score-a.score);
+  const rank=sorted.filter(m=>m.score>you).length+1;
+  yt.textContent=`YOU · ${you} · #${rank} of ${MODELS.length+1}`;
+  const above=sorted.filter(m=>m.score>you).slice(-1)[0];
+  const below=sorted.find(m=>m.score<=you);
+  document.getElementById('rankline').innerHTML=
+    `At <b>${you}</b> you rank <b>#${rank} of ${MODELS.length+1}</b>`+
+    (above&&below?` — between <b>${above.name}</b> (${above.score}) and <b>${below.name}</b> (${below.score}).`
+     :!above?` — above every model on the board, including Claude Opus 4.8. ☀`
+     :` — below every model here, even <b>${above.name}</b> (${above.score}).`)+
+    (below&&below.tier==='moon'?' You&rsquo;d fit in a pocket. 🌙':'');
+  // table
+  const rows=[...sorted.map(m=>({m})),{you:true,score:you}]
+    .sort((a,b)=>(b.you?b.score:b.m.score)-(a.you?a.score:a.m.score)||((a.you?1:0)-(b.you?1:0)));
+  document.querySelector('#ranktable tbody').innerHTML=rows.map((r,i)=>{
+    if(r.you)return `<tr class="you-row"><td class="rank">${i+1}</td>
+      <td><span class="mname" style="color:var(--dwarf-bright)">YOU</span> <span class="morg">— set with the slider</span></td>
+      <td><span class="chip" style="color:var(--dwarf-bright)"><span class="dot" style="background:var(--dwarf-bright)"></span>HUMAN</span></td>
+      <td class="num">${r.score}</td><td class="num">—</td><td><span class="open-tag">n/a</span></td></tr>`;
+    const m=r.m,t=TIERS[m.tier];
+    return `<tr><td class="rank">${i+1}</td>
+      <td><span class="mname">${m.name}</span> <span class="morg">${m.org||''}</span>${m.hero?' <span class="morg" style="color:var(--dwarf-bright)">⭐ via DwarfStar 4</span>':''}</td>
+      <td><span class="chip" style="color:${t.color}"><span class="dot" style="background:${t.color}"></span>${t.icon} ${t.label.toUpperCase()}</span></td>
+      <td class="num">${m.est?'~':''}${m.score}</td>
+      <td class="num">${m.mem?'~'+m.mem+' GB':'cloud'}</td>
+      <td>${m.open?'<span class="open-tag">OPEN</span>':'<span class="closed-tag">CLOSED</span>'}</td></tr>`;
+  }).join('');
+}
+range.addEventListener('input',()=>render(+range.value));
+num.addEventListener('input',()=>render(+num.value));
+render(40);
+</script>
