@@ -86,7 +86,7 @@
   <div class="eyebrow">Pocket &rarr; Frontier &middot; A Field Guide</div>
   <h1>The LLM Universe <span class="dim">/ phone-base leaderboard</span></h1>
   <p class="sub">Every body on this map is a language model, placed by the <b>memory it needs to run</b> (left: fits on your phone, right: cloud-only frontier) and ranked by the <b>Artificial Analysis Intelligence Index</b>. Moons run on a flagship phone, Dwarf Stars on a 128&thinsp;GB Mac or DGX Spark, Supergiants only in a datacenter.</p>
-  <p class="asof">DATA SNAPSHOT &middot; JULY 13, 2026 &middot; AUTO-REFRESHED WEEKLY &middot; ~ = estimated &middot; hover any body for details</p>
+  <p class="asof">DATA SNAPSHOT &middot; JULY 20, 2026 &middot; AUTO-REFRESHED WEEKLY &middot; ~ = estimated &middot; hover any body for details</p>
 
   <div class="legend" id="legend"></div>
 
@@ -143,12 +143,13 @@ const TIERS = {
 // mem = approx GB of unified memory needed (null = cloud only). est marks estimated index scores.
 // cost = blended API price, USD per 1M tokens at 3:1 input:output. cEst marks estimated prices.
 const MODELS = [
-  {name:'GPT-5.6 Sol',       org:'OpenAI',    score:59, tier:'super', open:false, cost:11.25, note:'NEW #1 · GA Jul 9 2026 · flagship of the GPT-5.6 family · $5/$30 per 1M'},
+  {name:'GPT-5.6 Sol',       org:'OpenAI',    score:59, tier:'super', open:false, cost:11.25, note:'#1 · GA Jul 9 2026 · flagship of the GPT-5.6 family · $5/$30 per 1M · up to 750 tok/s on Cerebras'},
   {name:'Claude Opus 4.8',   org:'Anthropic', score:56, tier:'super', open:false, cost:10.00, note:'SWE-bench Pro 69.2% · $5/$25 per 1M'},
   {name:'GPT-5.6 Terra',     org:'OpenAI',    score:55, tier:'super', open:false, cost:5.63, note:'NEW · balanced tier, ~Opus-level at half the price · $2.50/$15'},
   {name:'Grok 4.5',          org:'xAI',       score:54, est:true, tier:'super', open:false, cost:6.00, cEst:true, note:'NEW · released Jul 8 2026'},
   {name:'Gemini 3.1 Pro',    org:'Google',    score:53, est:true, tier:'super', open:false, cost:4.50, note:'strongest in coding-arena play'},
-  {name:'Muse Spark 1.1',    org:'Meta',      score:51, tier:'super', open:false, cost:2.00, note:'NEW · Jul 9 2026 · Meta Superintelligence Labs, proprietary Llama successor · coding sub-score jumped 59→71 · $1.25/$4.25'},
+  {name:'Claude Sonnet 5',   org:'Anthropic', score:52, est:true, tier:'super', open:false, cost:4.00, cEst:true, note:'NEW ON BOARD · Opus-class coding at ~1/3 the price · claude.ai default since Jun 30'},
+  {name:'Muse Spark 1.1',    org:'Meta',      score:51, tier:'super', open:false, cost:2.00, note:'Jul 9 2026 · Meta Superintelligence Labs, proprietary Llama successor · coding sub-score jumped 59→71 · $1.25/$4.25'},
   {name:'GPT-5.6 Luna',      org:'OpenAI',    score:48, est:true, tier:'super', open:false, cost:2.25, note:'NEW · fastest/cheapest 5.6 tier · $1/$6'},
   {name:'GLM-5.2',           org:'Z.AI',      score:51, tier:'giant', open:true, mem:420, cost:2.15, params:'744B MoE · 40B active', note:'Top open weights. SWE-bench Pro 62.1%, AIME 99.2'},
   {name:'Qwen3.7 Max',       org:'Alibaba',   score:46, est:true, tier:'giant', open:true, mem:500, cost:2.80, cEst:true, note:'highest-ranked Chinese model on arena boards'},
@@ -228,7 +229,7 @@ svg+=`<g id="youG"><line id="youLine" x1="${M.l}" x2="${W-M.r}" stroke="#f2f1ec"
 
 // place cloud-zone models within the band; fracs hand-tuned so dots and labels don't collide
 const CLOUD_FRAC={'GPT-5.6 Sol':0.85,'Claude Opus 4.8':0.08,'GPT-5.6 Terra':0.85,'Grok 4.5':0.18,
-  'Gemini 3.1 Pro':0.50,'Muse Spark 1.1':0.85,'GPT-5.6 Luna':0.78};
+  'Gemini 3.1 Pro':0.50,'Claude Sonnet 5':0.32,'Muse Spark 1.1':0.85,'GPT-5.6 Luna':0.78};
 const cloudModels=MODELS.filter(m=>!m.mem);
 cloudModels.forEach((m,i)=>{const f=CLOUD_FRAC[m.name]??((i+0.5)/cloudModels.length);
   m._x=CLOUD_X0+8+f*(W-M.r-CLOUD_X0-16);});
@@ -236,7 +237,7 @@ MODELS.forEach(m=>{if(m.mem)m._x=xMem(m.mem); m._y=yScore(m.score);});
 // label side overrides to dodge collisions
 // [dx, dy, anchor] — hand-tuned; null = no chart label (identity via tooltip + table instead)
 const LAB={'GPT-5.6 Sol':[-14,4,'end'],'Claude Opus 4.8':[-14,4,'end'],'GPT-5.6 Terra':[-14,-8,'end'],
- 'Grok 4.5':null,'Gemini 3.1 Pro':null,'Muse Spark 1.1':[-14,4,'end'],'GPT-5.6 Luna':[-20,20],
+ 'Grok 4.5':null,'Gemini 3.1 Pro':null,'Claude Sonnet 5':null,'Muse Spark 1.1':[-14,4,'end'],'GPT-5.6 Luna':[-20,20],
  'GLM-5.2':[0,-12],'Qwen3.7 Max':[-30,-13],'DeepSeek V4 Pro':[16,4,'start'],'MiniMax M3':[-14,-12],
  'Kimi K2.7 Code':[10,-13,'start'],'Kimi K2.6':null,
  'MiniMax M2.7':[18,-18],'DeepSeek V4 Flash':[8,22],'gpt-oss-120b':[0,-12],
