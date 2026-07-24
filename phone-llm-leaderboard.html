@@ -70,6 +70,19 @@
   .sortbtn.active{color:#0b0b13;background:var(--dwarf-bright);border-color:var(--dwarf-bright);font-weight:700}
   .sortbtn:focus-visible{outline:2px solid var(--dwarf-bright);outline-offset:2px}
   tr.tierhead td{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;padding:12px 14px 6px;border-bottom:1px solid var(--baseline);background:rgba(255,255,255,.02)}
+  .agents{list-style:none;margin:0;padding:0;border:1px solid var(--ring);border-radius:14px;background:var(--surface);overflow:hidden}
+  .agents li{display:flex;gap:14px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--grid);cursor:pointer}
+  .agents li:last-child{border-bottom:none}
+  .agents li:hover{background:rgba(255,255,255,.03)}
+  .agents .arank{font-family:var(--mono);width:24px;flex:none;font-size:15px;color:var(--ink-3);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  .agents li:nth-child(-n+3) .arank{color:var(--dwarf-bright)}
+  .agents .adot{width:9px;height:9px;border-radius:50%;flex:none}
+  .agents .abody{min-width:0}
+  .agents .aname{font-weight:650;font-size:14px}
+  .agents .awhy{font-size:11.5px;color:var(--ink-3);line-height:1.35}
+  .agents .ametric{margin-left:auto;flex:none;font-family:var(--mono);font-size:11px;color:var(--ink-2);text-align:right;line-height:1.5;font-variant-numeric:tabular-nums}
+  .agents .ametric b{color:var(--ink);font-size:13px}
+  @media (max-width:560px){.agents .ametric{display:none}}
   .foot{margin-top:40px;color:var(--ink-3);font-size:12.5px;max-width:80ch}
   .foot a{color:var(--ink-2)}
   .foot ul{margin:6px 0 0;padding-left:18px}
@@ -133,6 +146,10 @@
     <p><b>The Dwarf Star range (128&thinsp;GB).</b> <b>DeepSeek&nbsp;V4&nbsp;Flash</b> is a 284B-parameter MoE (13B active) that normally needs ~568&thinsp;GB &mdash; but <b>DwarfStar&nbsp;4 (ds4)</b>, the inference engine by Salvatore &ldquo;antirez&rdquo; Sanfilippo (creator of Redis), squeezes it to <b>~81&thinsp;GB</b> with asymmetric 2-bit/8-bit selective quantization. Result: near-frontier intelligence (index 37) running locally on a 128&thinsp;GB MacBook M4&nbsp;Max or NVIDIA DGX&nbsp;Spark, with 250K-token context demonstrated even on 96&thinsp;GB.</p>
   </div>
 
+  <h2>&#127942; Best agentic coders</h2>
+  <p class="h2sub">The models that actually finish long coding tasks &mdash; ranked on Terminal-Bench 2.1, SWE-bench Pro/Verified, and agentic evals &middot; click any row to compare</p>
+  <ol id="agents" class="agents"></ol>
+
   <h2>Full rankings</h2>
   <p class="h2sub" id="h2sub">Sorted by Artificial Analysis Intelligence Index &middot; your score is inserted where it lands</p>
   <div class="sortbar" role="tablist" aria-label="Sort rankings">
@@ -154,6 +171,7 @@
       <li><a href="https://github.com/antirez/ds4">antirez/ds4 — DwarfStar 4</a> &middot; <a href="https://gigazine.net/gsc_news/en/20260515-dwarfstar-4/">DwarfStar 4 (Gigazine)</a> &middot; <a href="https://www.mindstudio.ai/blog/run-deepseek-v4-flash-locally-dwarf-star-macbook">Running V4 Flash locally with DwarfStar</a></li>
       <li><a href="https://x.com/ArtificialAnlys/status/2043929874537296026">AA — sub-32B models reach GPT-5-level (Qwen3.5 27B, Gemma 4 31B)</a> &middot; <a href="https://felloai.com/best-ai-models/">Best AI models, July 2026</a></li>
       <li><a href="https://kimik3.xyz/">Kimi K3 — open agentic intelligence</a> &middot; <a href="https://techcrunch.com/2026/07/16/moonshots-upcoming-kimi-3-is-expected-to-close-the-gap-with-anthropics-opus-4-8/">K3 vs Opus 4.8 (TechCrunch)</a> &middot; <a href="https://deep-reinforce.com/ornith_1_0.html">Ornith-1.0 — self-scaffolding LLMs (DeepReinforce)</a> &middot; <a href="https://simonwillison.net/2026/Jun/29/ornith/">Ornith-1.0 (Simon Willison)</a> &middot; <a href="https://developers.openai.com/codex/models">Codex models (Sol / Terra / Luna)</a></li>
+      <li><a href="https://poolside.ai/blog/introducing-laguna-s-2-1">Laguna S 2.1 (Poolside)</a> &middot; <a href="https://poolside.ai/blog/introducing-laguna-xs-2-1">Laguna XS 2.1</a> &middot; <a href="https://venturebeat.com/infrastructure/poolside-drops-laguna-s-2-1-an-open-weight-coding-model-that-beats-rivals-10x-its-size">Laguna S 2.1 beats rivals 10× its size (VentureBeat)</a></li>
       <li>New this week: <a href="https://artificialanalysis.ai/articles/gpt-5-6-has-landed">GPT-5.6 has landed (AA)</a> &middot; <a href="https://www.aipricing.guru/openai-pricing/">GPT-5.6 Sol/Terra/Luna pricing</a> &middot; <a href="https://artificialanalysis.ai/articles/muse-spark-1-1-everything-you-need-to-know">Muse Spark 1.1 (AA)</a> &middot; <a href="https://aiweekly.co/alerts/meta-prices-muse-spark-11-api-at-125425-per-m-tokens">Muse Spark 1.1 API pricing</a> &middot; <a href="https://llm-stats.com/llm-updates">Grok 4.5 release (llm-stats)</a> &middot; <a href="https://kingy.ai/ai/kimi-k2-7-code-benchmarks-specs/">Kimi K2.7 Code benchmarks</a></li>
     </ul>
   </div>
@@ -193,11 +211,13 @@ const MODELS = [
   {name:'Nemotron 3 Ultra',  org:'NVIDIA',    score:42, est:true, tier:'giant', open:true, mem:310, cost:0.72, cEst:true, params:'550B', note:'NEW ON BOARD · top US open weights · GPQA 87.0 · LiveCodeBench 89.0 · RULER-1M 94.7'},
   {name:'Mistral Large 3',   org:'Mistral',   score:40, est:true, tier:'giant', open:true, mem:380, cost:1.50, cEst:true, params:'675B MoE · 41B active', note:'NEW ON BOARD · Apache 2.0 · Europe&rsquo;s frontier open model'},
   {name:'MiniMax M2.7',      org:'MiniMax',   score:38, tier:'dwarf', open:true, mem:125, cost:0.40, cEst:true, note:'value tier of the M-series · 256K context'},
+  {name:'Laguna S 2.1',      org:'Poolside',  score:32, est:true, tier:'dwarf', open:true, mem:65, cost:0.30, cEst:true, params:'118B MoE · 8B active', note:'NEW · Jul 22 2026 · the West&rsquo;s top open coding model — beats rivals 10× its size · Terminal-Bench 70.2 · 1M context'},
   {name:'DeepSeek V4 Flash', org:'DeepSeek',  score:37, tier:'dwarf', open:true, mem:81, cost:0.18, params:'284B MoE · 13B active', note:'⭐ ~81 GB via DwarfStar 4 (ds4) selective quant — runs on a 128 GB Mac / DGX Spark. Cheapest API of any big model ($0.14/$0.28)', hero:true},
   {name:'gpt-oss-120b',      org:'OpenAI',    score:26, est:true, tier:'dwarf', open:true, mem:61, cost:0.20, cEst:true, note:'Apache 2.0 · GPQA 76.2'},
   {name:'Qwen3.5 27B',       org:'Alibaba',   score:42, tier:'planet', open:true, mem:17, cost:0.18, cEst:true, note:'GPT-5 (medium)-level in a sub-32B model'},
   {name:'Gemma 4 31B',       org:'Google',    score:39, tier:'planet', open:true, mem:19, cost:0.15, cEst:true, note:'matches GPT-5 (low)'},
   {name:'Ornith-1.0 31B',    org:'DeepReinforce', score:36, est:true, tier:'planet', open:true, mem:19, cost:0.15, cEst:true, note:'NEW · MIT agentic coder, post-trained on Gemma 4'},
+  {name:'Laguna XS 2.1',     org:'Poolside',  score:24, est:true, tier:'planet', open:true, mem:19, cost:0.10, cEst:true, params:'33B MoE · 3B active', note:'NEW · Jul 2 2026 · single-GPU agentic coder · SWE-bench Multilingual 63.1'},
   {name:'Ornith-1.0 35B',    org:'DeepReinforce', score:35, est:true, tier:'planet', open:true, mem:22, cost:0.12, cEst:true, params:'35B MoE', note:'NEW · MIT agentic coder, post-trained on Qwen 3.5'},
   {name:'Qwen3.6 35B A3B',   org:'Alibaba',   score:33, tier:'planet', open:true, mem:20, cost:0.12, cEst:true, params:'35B MoE · 3B active'},
   {name:'gpt-oss-20b',       org:'OpenAI',    score:21, est:true, tier:'moon', open:true, mem:12, cost:0.09, cEst:true, note:'fits a 16 GB flagship phone or any laptop'},
@@ -211,9 +231,10 @@ const MODELS = [
 // Published benchmark results (per-model, from the sources in the footer).
 // Versions and agent harnesses vary between publishers.
 const BENCH={
- 'Terminal-Bench 2.1':{'GPT-5.6 Sol':88.8,'Kimi K3':88.3,'Claude Opus 4.8':85.0,'Muse Spark 1.1':80.0,'Ornith-1.0 397B':77.5},
+ 'Terminal-Bench 2.1':{'GPT-5.6 Sol':88.8,'Kimi K3':88.3,'Claude Opus 4.8':85.0,'Muse Spark 1.1':80.0,'Ornith-1.0 397B':77.5,'Laguna S 2.1':70.2,'Laguna XS 2.1':33.4},
  'SWE-bench Verified':{'Claude Opus 4.8':87.6,'Ornith-1.0 397B':82.4,'Nemotron 3 Ultra':70.7},
- 'SWE-bench Pro':{'Claude Opus 4.8':69.2,'GLM-5.2':62.1,'Muse Spark 1.1':61.5,'MiniMax M3':59.0},
+ 'SWE-bench Pro':{'Claude Opus 4.8':69.2,'GLM-5.2':62.1,'Muse Spark 1.1':61.5,'Laguna S 2.1':59.4,'MiniMax M3':59.0},
+ 'SWE-bench Multilingual':{'Laguna S 2.1':78.5,'Laguna XS 2.1':63.1},
  'DeepSWE':{'GPT-5.6 Sol':73.0,'Kimi K3':67.5,'Muse Spark 1.1':53.3},
  'GPQA Diamond':{'GLM-5.2':91.2,'Nemotron 3 Ultra':87.0,'Qwen3.5 27B':85.8,'Gemma 4 31B':84.3,'gpt-oss-120b':76.2},
  'LiveCodeBench':{'DeepSeek V4 Pro':93.5,'Nemotron 3 Ultra':89.0,'Gemma 4 31B':80.0},
@@ -295,9 +316,10 @@ const LAB={'GPT-5.6 Sol':[-14,4,'end'],'Claude Opus 4.8':[-14,20,'end'],'GPT-5.6
  'GLM-5.2':[-14,4,'end'],'Kimi K3':[-20,-12],'Qwen3.7 Max':[-30,-13],'DeepSeek V4 Pro':[16,4,'start'],
  'MiniMax M3':[-40,20],'Ornith-1.0 397B':[-14,4,'end'],'Kimi K2.7 Code':[10,-13,'start'],
  'Nemotron 3 Ultra':null,'Mistral Large 3':null,
- 'MiniMax M2.7':[0,20],'DeepSeek V4 Flash':[20,28],'gpt-oss-120b':[0,-12],
+ 'MiniMax M2.7':[0,20],'DeepSeek V4 Flash':[20,28],'Laguna S 2.1':[14,4,'start'],'gpt-oss-120b':[0,-12],
+ 'Laguna XS 2.1':[0,-12],
  'Qwen3.5 27B':[6,-12],'Gemma 4 31B':[-14,4,'end'],'Ornith-1.0 31B':[-14,4,'end'],'Ornith-1.0 35B':[14,4,'start'],'Qwen3.6 35B A3B':[0,20],
- 'gpt-oss-20b':[0,-12],'Gemma 4 E4B':[-26,-14],'Ornith-1.0 9B':[16,14,'start'],'Qwen3 8B':[16,18],'Qwen3 4B':[-12,-12],'Gemma 4 E2B':[8,20],'Llama 3.2 3B':[0,-12]};
+ 'gpt-oss-20b':[-20,-12],'Gemma 4 E4B':[-26,-14],'Ornith-1.0 9B':[16,14,'start'],'Qwen3 8B':[16,18],'Qwen3 4B':[-12,-12],'Gemma 4 E2B':[8,20],'Llama 3.2 3B':[0,-12]};
 for(const m of MODELS){
   const c=TIERS[m.tier].color, r=m.hero?11:(m.tier==='super'?9:m.tier==='giant'?8.5:m.tier==='dwarf'?8:m.tier==='planet'?7:6);
   const idx=MODELS.indexOf(m);
@@ -392,6 +414,30 @@ scrim.addEventListener('click',closeDrawer);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
 document.getElementById('ranktable').addEventListener('click',e=>{
   const tr=e.target.closest('tr[data-mi]');if(tr)openModel(+tr.dataset.mi);});
+
+/* ---------- best agentic coders list ---------- */
+const AGENTS=[
+ {name:'GPT-5.6 Sol',      metric:'TB 2.1 <b>88.8</b>',  why:'State of the art on the Coding Agent Index (80) — half the tokens, half the time'},
+ {name:'Kimi K3',          metric:'TB 2.1 <b>88.3</b>',  why:'Best open-weight agentic coder — 0.5 behind Sol, weights on Hugging Face'},
+ {name:'Claude Opus 4.8',  metric:'SWE Pro <b>69.2</b>', why:'SWE-bench Pro leader; Terminal-Bench 85.0 · the long-horizon workhorse'},
+ {name:'Muse Spark 1.1',   metric:'TB 2.1 <b>80.0</b>',  why:'Meta&rsquo;s coding sub-score jumped 59&rarr;71 in one release — at $1.25/$4.25'},
+ {name:'Ornith-1.0 397B',  metric:'SWE-V <b>82.4</b>',   why:'Self-scaffolding RL — writes its own agent harness · MIT license'},
+ {name:'Laguna S 2.1',     metric:'TB 2.1 <b>70.2</b>',  why:'Pound-for-pound king: 118B (8B active) beating models 10&times; its size — fits a 128 GB Mac'},
+ {name:'GLM-5.2',          metric:'SWE Pro <b>62.1</b>', why:'Within 1% of Opus 4.8 on FrontierSWE (11-hour agent runs) · MIT'},
+ {name:'Kimi K2.7 Code',   metric:'&Delta;K2.6 <b>+21.8%</b>', why:'The efficiency pick — 30% fewer reasoning tokens per task'},
+ {name:'MiniMax M3',       metric:'SWE Pro <b>59.0</b>', why:'Beats GPT-5.5 on real PRs at $0.22/1M blended — cheapest serious agent'},
+ {name:'Ornith-1.0 9B',    metric:'moon class',          why:'The only credible agentic coder that fits on a phone (~5.5 GB)'},
+];
+document.getElementById('agents').innerHTML=AGENTS.map((a,i)=>{
+ const m=MODELS.find(x=>x.name===a.name),t=TIERS[m.tier];
+ return `<li data-mi="${MODELS.indexOf(m)}"><span class="arank">${i+1}</span>
+  <span class="adot" style="background:${t.color}"></span>
+  <span class="abody"><span class="aname">${a.name}</span> <span class="morg">${m.org}</span>
+  <div class="awhy">${a.why}</div></span>
+  <span class="ametric">${a.metric}<br><span style="color:${t.color}">${t.icon} ${t.label.toUpperCase()}</span></span></li>`;
+}).join('');
+document.getElementById('agents').addEventListener('click',e=>{
+ const li=e.target.closest('li[data-mi]');if(li)openModel(+li.dataset.mi);});
 
 /* ---------- your score: rank line + table ---------- */
 const range=document.getElementById('youRange'),num=document.getElementById('youNum');
