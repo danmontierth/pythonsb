@@ -214,12 +214,15 @@ const MODELS = [
   {name:'Laguna S 2.1',      org:'Poolside',  score:32, est:true, tier:'dwarf', open:true, mem:65, cost:0.30, cEst:true, params:'118B MoE · 8B active', note:'NEW · Jul 22 2026 · the West&rsquo;s top open coding model — beats rivals 10× its size · Terminal-Bench 70.2 · 1M context'},
   {name:'DeepSeek V4 Flash', org:'DeepSeek',  score:37, tier:'dwarf', open:true, mem:81, cost:0.18, params:'284B MoE · 13B active', note:'⭐ ~81 GB via DwarfStar 4 (ds4) selective quant — runs on a 128 GB Mac / DGX Spark. Cheapest API of any big model ($0.14/$0.28)', hero:true},
   {name:'gpt-oss-120b',      org:'OpenAI',    score:26, est:true, tier:'dwarf', open:true, mem:61, cost:0.20, cEst:true, note:'Apache 2.0 · GPQA 76.2'},
+  {name:'Qwen3.6 27B',       org:'Alibaba',   score:46, est:true, tier:'planet', open:true, mem:17, cost:0.15, cEst:true, note:'Strongest sub-32B model — Intelligence Index 45.8 (reasoning) · ~16.8 GB'},
   {name:'Qwen3.5 27B',       org:'Alibaba',   score:42, tier:'planet', open:true, mem:17, cost:0.18, cEst:true, note:'GPT-5 (medium)-level in a sub-32B model'},
   {name:'Gemma 4 31B',       org:'Google',    score:39, tier:'planet', open:true, mem:19, cost:0.15, cEst:true, note:'matches GPT-5 (low)'},
   {name:'Ornith-1.0 31B',    org:'DeepReinforce', score:36, est:true, tier:'planet', open:true, mem:19, cost:0.15, cEst:true, note:'NEW · MIT agentic coder, post-trained on Gemma 4'},
   {name:'Laguna XS 2.1',     org:'Poolside',  score:24, est:true, tier:'planet', open:true, mem:19, cost:0.10, cEst:true, params:'33B MoE · 3B active', note:'NEW · Jul 2 2026 · single-GPU agentic coder · SWE-bench Multilingual 63.1'},
   {name:'Ornith-1.0 35B',    org:'DeepReinforce', score:35, est:true, tier:'planet', open:true, mem:22, cost:0.12, cEst:true, params:'35B MoE', note:'NEW · MIT agentic coder, post-trained on Qwen 3.5'},
+  {name:'Gemma 4 26B',       org:'Google',    score:34, est:true, tier:'planet', open:true, mem:17.5, cost:0.10, cEst:true, params:'26B MoE · 4B active', note:'faster than the 31B dense · GPQA 79.2'},
   {name:'Qwen3.6 35B A3B',   org:'Alibaba',   score:33, tier:'planet', open:true, mem:20, cost:0.12, cEst:true, params:'35B MoE · 3B active'},
+  {name:'Gemma 4 12B',       org:'Google',    score:31, est:true, tier:'moon', open:true, mem:8, cost:0.05, cEst:true, note:'Jun 3 2026 · native text/image/audio/video on a 16 GB laptop · near-26B quality at half the memory'},
   {name:'gpt-oss-20b',       org:'OpenAI',    score:21, est:true, tier:'moon', open:true, mem:12, cost:0.09, cEst:true, note:'fits a 16 GB flagship phone or any laptop'},
   {name:'Gemma 4 E4B',       org:'Google',    score:19, tier:'moon', open:true, mem:4, cost:0.02, note:'built for phones (Matformer)'},
   {name:'Ornith-1.0 9B',     org:'DeepReinforce', score:20, est:true, tier:'moon', open:true, mem:5.5, cost:0.05, cEst:true, note:'NEW · MIT · agentic coding sized for a phone'},
@@ -236,7 +239,7 @@ const BENCH={
  'SWE-bench Pro':{'Claude Opus 4.8':69.2,'GLM-5.2':62.1,'Muse Spark 1.1':61.5,'Laguna S 2.1':59.4,'MiniMax M3':59.0},
  'SWE-bench Multilingual':{'Laguna S 2.1':78.5,'Laguna XS 2.1':63.1},
  'DeepSWE':{'GPT-5.6 Sol':73.0,'Kimi K3':67.5,'Muse Spark 1.1':53.3},
- 'GPQA Diamond':{'GLM-5.2':91.2,'Nemotron 3 Ultra':87.0,'Qwen3.5 27B':85.8,'Gemma 4 31B':84.3,'gpt-oss-120b':76.2},
+ 'GPQA Diamond':{'GLM-5.2':91.2,'Nemotron 3 Ultra':87.0,'Qwen3.5 27B':85.8,'Gemma 4 31B':84.3,'Gemma 4 26B':79.2,'gpt-oss-120b':76.2},
  'LiveCodeBench':{'DeepSeek V4 Pro':93.5,'Nemotron 3 Ultra':89.0,'Gemma 4 31B':80.0},
  'AIME':{'GLM-5.2':99.2,'Qwen3.6 35B A3B':92.7,'Gemma 4 31B':89.2},
  'SciCode':{'DeepSeek V4 Pro':42,'GLM-5.2':38,'Qwen3.7 Max':36},
@@ -318,7 +321,7 @@ const LAB={'GPT-5.6 Sol':[-14,4,'end'],'Claude Opus 4.8':[-14,20,'end'],'GPT-5.6
  'Nemotron 3 Ultra':null,'Mistral Large 3':null,
  'MiniMax M2.7':[0,20],'DeepSeek V4 Flash':[20,28],'Laguna S 2.1':[14,4,'start'],'gpt-oss-120b':[0,-12],
  'Laguna XS 2.1':[0,-12],
- 'Qwen3.5 27B':[6,-12],'Gemma 4 31B':[-14,4,'end'],'Ornith-1.0 31B':[-14,4,'end'],'Ornith-1.0 35B':[14,4,'start'],'Qwen3.6 35B A3B':[0,20],
+ 'Qwen3.6 27B':[0,-12],'Qwen3.5 27B':[6,-12],'Gemma 4 31B':[-14,4,'end'],'Gemma 4 26B':[-14,4,'end'],'Gemma 4 12B':[0,20],'Ornith-1.0 31B':[-14,4,'end'],'Ornith-1.0 35B':[14,4,'start'],'Qwen3.6 35B A3B':[0,20],
  'gpt-oss-20b':[-20,-12],'Gemma 4 E4B':[-26,-14],'Ornith-1.0 9B':[16,14,'start'],'Qwen3 8B':[16,18],'Qwen3 4B':[-12,-12],'Gemma 4 E2B':[8,20],'Llama 3.2 3B':[0,-12]};
 for(const m of MODELS){
   const c=TIERS[m.tier].color, r=m.hero?11:(m.tier==='super'?9:m.tier==='giant'?8.5:m.tier==='dwarf'?8:m.tier==='planet'?7:6);
