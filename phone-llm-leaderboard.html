@@ -128,7 +128,7 @@
   <div class="eyebrow">Pocket &rarr; Frontier &middot; A Field Guide</div>
   <h1>The LLM Universe <span class="dim">/ phone-base leaderboard</span></h1>
   <p class="sub">Every body on this map is a language model, placed by the <b>memory it needs to run</b> (left: fits on your phone, right: cloud-only frontier) and ranked by the <b>Artificial Analysis Intelligence Index</b>. Moons run on a flagship phone, Dwarf Stars on a 128&thinsp;GB Mac or DGX Spark, Supergiants only in a datacenter.</p>
-  <p class="asof">DATA SNAPSHOT &middot; OCTOBER 5, 2026 &middot; AUTO-REFRESHED WEEKLY &middot; ~ = estimated &middot; hover for details &middot; CLICK ANY MODEL TO COMPARE</p>
+  <p class="asof">DATA SNAPSHOT &middot; OCTOBER 12, 2026 &middot; AUTO-REFRESHED WEEKLY &middot; ~ = estimated &middot; hover for details &middot; CLICK ANY MODEL TO COMPARE</p>
 
   <div class="legend" id="legend"></div>
 
@@ -199,14 +199,14 @@ const MODELS = [
   {name:'Claude Opus 5.5',   org:'Anthropic', score:65, est:true, tier:'super', open:false, cost:8.00, note:'Sep 22 2026 · replaced Opus 5 after two months · $4/$20, cache reads $0.20 · AA v4.3.2: 58'},
   {name:'Claude Sonnet 5.5', org:'Anthropic', score:63, est:true, tier:'super', open:false, cost:4.00, note:'NEW · Sep 28 2026 · #2 on AA v4.3.2 (56) · $2/$10 with the full 1M window at flat rate'},
   {name:'GPT-6 Astra',       org:'OpenAI',    score:61, tier:'super', open:false, cost:20.00, note:'Sep 3 2026 · GPQA Diamond leader · $10/$50'},
-  {name:'GPT-6.1 Sol',       org:'OpenAI',    score:59, est:true, tier:'super', open:false, cost:4.00, note:'NEW · Sep 29 2026 point release · $2/$10 · AA v4.3.2: 52 · GPT-6 Luna at $0.10/$0.50 sets the new price floor'},
+  {name:'GPT-6.1 Sol',       org:'OpenAI',    score:59, est:true, tier:'super', open:false, cost:4.00, note:'Sep 29 2026 point release · $2/$10 · AA v4.3.2: 52'},
   {name:'GPT-5.6 Sol',       org:'OpenAI',    score:59, tier:'super', open:false, cost:11.25, note:'GA Jul 9 2026 · $5/$30 per 1M · Codex "detail & polish" tier · Coding Agent Index 80 · highest verified ARC-AGI-2'},
-  {name:'Gemini 3.8 Flash',  org:'Google',    score:59, tier:'super', open:false, cost:1.00, cEst:true, note:'Sep 2 2026 · frontier-class intelligence at Flash pricing'},
+  {name:'Gemini 3.8 Flash',  org:'Google',    score:48, est:true, tier:'super', open:false, cost:1.00, cEst:true, note:'Sep 2 2026 · Flash pricing · AA v4.3.2: 41'},
+  {name:'Claude Haiku 5.5',  org:'Anthropic', score:50, est:true, tier:'super', open:false, cost:0.20, note:'NEW · Oct 7 2026 · $0.10/$0.50 — a ~90% price cut · leading small model (AA v4.3.2: 43 max) · OSWorld 15.7→72.4 over Haiku 4.5'},
+  {name:'GPT-6 Luna',        org:'OpenAI',    score:45, est:true, tier:'super', open:false, cost:0.20, note:'Sep 22 2026 · the $0.10/$0.50 price floor · AA v4.3.2: 38'},
   {name:'Claude Opus 4.8',   org:'Anthropic', score:56, tier:'super', open:false, cost:10.00, note:'SWE-bench Pro 69.2% · $5/$25 per 1M'},
-  {name:'GPT-5.6 Terra',     org:'OpenAI',    score:55, tier:'super', open:false, cost:5.63, note:'Balanced tier · $2.50/$15 · Codex everyday workhorse'},
   {name:'Grok 4.7',          org:'xAI',       score:53, est:true, tier:'super', open:false, cost:3.00, note:'Sep 21 2026 · $2/$6 · AA v4.3.2: 46.3 (score remapped to the board scale)'},
   {name:'Muse Spark 1.1',    org:'Meta',      score:51, tier:'super', open:false, cost:2.00, note:'Jul 9 2026 · Meta Superintelligence Labs, proprietary Llama successor · coding sub-score jumped 59→71 · $1.25/$4.25 · Muse Spark 1.3 shipped Sep 2'},
-  {name:'GPT-5.6 Luna',      org:'OpenAI',    score:48, est:true, tier:'super', open:false, cost:2.25, note:'Fastest/cheapest 5.6 tier · $1/$6 · Codex fast tier for repeatable work'},
   {name:'GLM-5.2',           org:'Z.AI',      score:51, tier:'giant', open:true, mem:420, cost:2.15, params:'744B MoE · 40B active', note:'Top open weights. SWE-bench Pro 62.1%, AIME 99.2'},
   {name:'Qwen3.7 Max',       org:'Alibaba',   score:46, est:true, tier:'giant', open:true, mem:500, cost:2.80, cEst:true, note:'highest-ranked Chinese model on arena boards'},
   {name:'DeepSeek V4 Pro',   org:'DeepSeek',  score:44, tier:'giant', open:true, mem:700, cost:0.45, cEst:true, note:'LiveCodeBench 93.5% — best of any model · 1M context at no premium'},
@@ -214,11 +214,11 @@ const MODELS = [
   {name:'MiMo V2.6 Pro',     org:'Xiaomi',    score:54, est:true, tier:'giant', open:true, mem:300, cost:0.54, note:'Sep 22 2026 · matches Grok 4.7 on AA v4.3.2 (46.5) at 1/24th the bill · $0.43/$0.87, 99% cache discount · #2 open weights behind Kimi K3'},
   {name:'Kimi K3',           org:'Moonshot',  score:57, tier:'giant', open:true, mem:1600, cost:6.00, params:'2.8T MoE · 104B active', note:'largest open model ever · 1M context (Kimi-Linear) · $3/$15 · weights on Hugging Face'},
   {name:'DeepSeek V4.1 Flash',org:'DeepSeek', score:45, est:true, tier:'giant', open:true, mem:420, cost:0.33, params:'748B (552B + 196B Engram) · 8B/16B active', note:'NEW · Sep 10 2026 · within a point of GPT-6 Astra on agentic design at 1.4% of the cost · $0.22/$0.66'},
-  {name:'GLM-5.3-Flash',     org:'Z.AI',      score:44, est:true, tier:'giant', open:true, mem:170, cost:0.25, cEst:true, params:'320B MoE · 18B active', note:'NEW · Aug 2026 · MIT · 1M context · natively multimodal'},
+  {name:'GLM-5.3-Flash',     org:'Z.AI',      score:49, est:true, tier:'giant', open:true, mem:170, cost:0.25, cEst:true, params:'320B MoE · 18B active', note:'Aug 2026 · MIT · 1M context · natively multimodal · AA v4.3.2: 42 · GLM 5.3 Fast shipped Oct 7'},
   {name:'Ornith-1.0 397B',   org:'DeepReinforce', score:45, est:true, tier:'giant', open:true, mem:210, cost:0.90, cEst:true, note:'NEW · MIT · self-scaffolding RL · Terminal-Bench 77.5 / SWE-V 82.4 (beats Opus 4.7)'},
   {name:'Kimi K2.7 Code',    org:'Moonshot',  score:45, est:true, tier:'giant', open:true, mem:620, cost:1.20, cEst:true, note:'agentic coding · +21.8% over K2.6 with 30% fewer reasoning tokens'},
   {name:'Nemotron 3 Ultra',  org:'NVIDIA',    score:42, est:true, tier:'giant', open:true, mem:310, cost:0.72, cEst:true, params:'550B', note:'NEW ON BOARD · top US open weights · GPQA 87.0 · LiveCodeBench 89.0 · RULER-1M 94.7'},
-  {name:'Mistral Large 3',   org:'Mistral',   score:40, est:true, tier:'giant', open:true, mem:380, cost:1.50, cEst:true, params:'675B MoE · 41B active', note:'NEW ON BOARD · Apache 2.0 · Europe&rsquo;s frontier open model'},
+  {name:'Mistral Large 3',   org:'Mistral',   score:40, est:true, tier:'giant', open:true, mem:380, cost:1.50, cEst:true, params:'675B MoE · 41B active', note:'Apache 2.0 · Europe&rsquo;s frontier open model · Mistral Large 4 in public preview, weights due end of Oct'},
   {name:'MiniMax M2.7',      org:'MiniMax',   score:38, tier:'dwarf', open:true, mem:125, cost:0.40, cEst:true, note:'value tier of the M-series · 256K context'},
   {name:'Qwen3.8-Flash',     org:'Alibaba',   score:42, est:true, tier:'dwarf', open:true, mem:100, cost:0.20, cEst:true, params:'125B + 51B n-gram', note:'NEW · Aug 2026 · early preview of the Qwen4 architecture'},
   {name:'Laguna S 2.1',      org:'Poolside',  score:32, est:true, tier:'dwarf', open:true, mem:65, cost:0.30, cEst:true, params:'118B MoE · 8B active', note:'Jul 22 2026 · the West&rsquo;s top open coding model — beats rivals 10× its size · Terminal-Bench 70.2 · 1M context'},
@@ -317,8 +317,8 @@ svg+=`<g id="youG"><line id="youLine" x1="${M.l}" x2="${W-M.r}" stroke="#f2f1ec"
 
 // place cloud-zone models within the band; fracs hand-tuned so dots and labels don't collide
 const CLOUD_FRAC={'Claude Fable 5.1':0.06,'Claude Opus 5.5':0.50,'Claude Sonnet 5.5':0.93,'GPT-6 Astra':0.71,
-  'GPT-5.6 Sol':0.06,'GPT-6.1 Sol':0.50,'Gemini 3.8 Flash':0.93,'Claude Opus 4.8':0.71,
-  'GPT-5.6 Terra':0.28,'Grok 4.7':0.06,'Muse Spark 1.1':0.50,'GPT-5.6 Luna':0.93};
+  'GPT-5.6 Sol':0.06,'GPT-6.1 Sol':0.50,'Claude Opus 4.8':0.71,'Grok 4.7':0.06,
+  'Muse Spark 1.1':0.50,'Claude Haiku 5.5':0.93,'Gemini 3.8 Flash':0.28,'GPT-6 Luna':0.71};
 const cloudModels=MODELS.filter(m=>!m.mem);
 cloudModels.forEach((m,i)=>{const f=CLOUD_FRAC[m.name]??((i+0.5)/cloudModels.length);
   m._x=CLOUD_X0+8+f*(W-M.r-CLOUD_X0-16);});
@@ -327,7 +327,7 @@ MODELS.forEach(m=>{if(m.mem)m._x=xMem(Math.min(m.mem,900)); m._y=yScore(m.score)
 // [dx, dy, anchor] — hand-tuned; null = no chart label (identity via tooltip + table instead)
 const LAB={'Claude Fable 5.1':[-14,4,'end'],'Claude Opus 5.5':null,'Claude Sonnet 5.5':null,'GPT-6.1 Sol':null,'Grok 4.7':null,
  'GPT-6 Astra':null,'GPT-5.6 Sol':[-14,-6,'end'],'Gemini 3.8 Flash':null,'Claude Opus 4.8':null,
- 'GPT-5.6 Terra':null,'Muse Spark 1.1':null,'GPT-5.6 Luna':[-14,4,'end'],
+ 'Claude Haiku 5.5':null,'Muse Spark 1.1':null,'GPT-6 Luna':[-14,4,'end'],
  'GLM-5.2':[-14,4,'end'],'Kimi K3':[-14,4,'end'],'MiMo V2.6 Pro':[0,-12],'Qwen3.7 Max':[-30,-13],'DeepSeek V4 Pro':[16,4,'start'],
  'DeepSeek V4.1 Flash':null,'GLM-5.3-Flash':null,'Qwen3.8-Flash':[-20,-12],
  'MiniMax M3':[-40,20],'Ornith-1.0 397B':[-14,-14,'end'],'Kimi K2.7 Code':null,
