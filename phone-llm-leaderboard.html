@@ -128,7 +128,7 @@
   <div class="eyebrow">Pocket &rarr; Frontier &middot; A Field Guide</div>
   <h1>The LLM Universe <span class="dim">/ phone-base leaderboard</span></h1>
   <p class="sub">Every body on this map is a language model, placed by the <b>memory it needs to run</b> (left: fits on your phone, right: cloud-only frontier) and ranked by the <b>Artificial Analysis Intelligence Index</b>. Moons run on a flagship phone, Dwarf Stars on a 128&thinsp;GB Mac or DGX Spark, Supergiants only in a datacenter.</p>
-  <p class="asof">DATA SNAPSHOT &middot; OCTOBER 26, 2026 &middot; AUTO-REFRESHED WEEKLY &middot; ~ = estimated &middot; hover for details &middot; CLICK ANY MODEL TO COMPARE</p>
+  <p class="asof">DATA SNAPSHOT &middot; NOVEMBER 2, 2026 &middot; AUTO-REFRESHED WEEKLY &middot; ~ = estimated &middot; hover for details &middot; CLICK ANY MODEL TO COMPARE</p>
 
   <div class="legend" id="legend"></div>
 
@@ -218,7 +218,7 @@ const MODELS = [
   {name:'Ornith-1.0 397B',   org:'DeepReinforce', score:45, est:true, tier:'giant', open:true, mem:210, cost:0.90, cEst:true, note:'NEW · MIT · self-scaffolding RL · Terminal-Bench 77.5 / SWE-V 82.4 (beats Opus 4.7)'},
   {name:'Kimi K2.7 Code',    org:'Moonshot',  score:45, est:true, tier:'giant', open:true, mem:620, cost:1.20, cEst:true, note:'agentic coding · +21.8% over K2.6 with 30% fewer reasoning tokens'},
   {name:'Nemotron 3 Ultra',  org:'NVIDIA',    score:42, est:true, tier:'giant', open:true, mem:310, cost:0.72, cEst:true, params:'550B', note:'NEW ON BOARD · top US open weights · GPQA 87.0 · LiveCodeBench 89.0 · RULER-1M 94.7'},
-  {name:'Mistral Large 4',   org:'Mistral',   score:45, est:true, tier:'giant', open:true, mem:580, xjit:44, cost:1.00, cEst:true, params:'1.05T MoE · 49B active', note:'"Le Chonk" · AA v4.3.2: 38 — most intelligent model outside the US and China, 8th among open models · natively multimodal · weights due by Oct 31'},
+  {name:'Mistral Large 4',   org:'Mistral',   score:45, est:true, tier:'giant', open:true, mem:580, xjit:44, cost:1.00, cEst:true, params:'1.05T MoE · 49B active', note:'"Le Chonk" · weights released Oct 29 (RL-improved, ~50% fewer tokens than preview) · best outside US/China (AA 38) · quantized build runs on 4× B200 · Terminal-Bench 4.0: 41 vendor / 25 generic harness'},
   {name:'MiniMax M2.7',      org:'MiniMax',   score:38, tier:'dwarf', open:true, mem:125, cost:0.40, cEst:true, note:'value tier of the M-series · 256K context'},
   {name:'Qwen3.8-Flash',     org:'Alibaba',   score:42, est:true, tier:'dwarf', open:true, mem:100, cost:0.20, cEst:true, params:'125B + 51B n-gram', note:'NEW · Aug 2026 · early preview of the Qwen4 architecture'},
   {name:'Laguna S 2.1',      org:'Poolside',  score:32, est:true, tier:'dwarf', open:true, mem:65, cost:0.30, cEst:true, params:'118B MoE · 8B active', note:'Jul 22 2026 · the West&rsquo;s top open coding model — beats rivals 10× its size · Terminal-Bench 70.2 · 1M context'},
